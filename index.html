@@ -1262,7 +1262,7 @@ function DaggerheartSheet({ c, setC, onBack }) {
                 key: n,
                 label: n,
                 meta: `${cl.domains.join(" & ")} · HP ${cl.hp} · Evasion ${cl.evasion}`,
-                body: `## Overview\nDomains: ${cl.domains.join(" & ")}  ·  Starting HP: ${cl.hp}  ·  Base Evasion: ${cl.evasion}\n\n## Hope Feature\n${hopeFormatted}\n\n## Class Features\n\n${featureLines}\n\n## Starting Items\n${cl.items}`,
+                body: `## Overview\n**Domains**: ${cl.domains.join(" & ")}\n**Starting HP**: ${cl.hp}\n**Base Evasion**: ${cl.evasion}\n\n## Hope Feature\n${hopeFormatted}\n\n## Class Features\n\n${featureLines}\n\n## Starting Items\n${cl.items}`,
               };
             });
             return (

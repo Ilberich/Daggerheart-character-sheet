@@ -207,6 +207,34 @@ const COMMUNITIES = {
 
 const COMMUNITY_HAS_NOTES = { Orderborne: "Record your three sayings or values below:" };
 
+// ── MIXED ANCESTRY HELPER ────────────────────────────────────
+// featureIdx: 0 = first feature, 1 = second feature
+// mixedFeaturePick "A" = feat[0] from primary (ancestry) + feat[1] from secondary (ancestrySecondary)
+// mixedFeaturePick "B" = feat[1] from primary (ancestry) + feat[0] from secondary (ancestrySecondary)
+function hasAncestryFeature(c, ancestryName, featureIdx) {
+  if (!c.isMixedAncestry) return c.ancestry === ancestryName;
+  if (featureIdx === 0) {
+    return (c.mixedFeaturePick === "A" && c.ancestry === ancestryName) ||
+           (c.mixedFeaturePick === "B" && c.ancestrySecondary === ancestryName);
+  } else {
+    return (c.mixedFeaturePick === "A" && c.ancestrySecondary === ancestryName) ||
+           (c.mixedFeaturePick === "B" && c.ancestry === ancestryName);
+  }
+}
+function getActiveAncestryFeatures(c) {
+  if (!c.isMixedAncestry) return c.ancestry ? (ANCESTRIES[c.ancestry] || []) : [];
+  const primary = ANCESTRIES[c.ancestry] || [];
+  const secondary = ANCESTRIES[c.ancestrySecondary] || [];
+  if (c.mixedFeaturePick === "A") return [primary[0], secondary[1]].filter(Boolean);
+  return [primary[1], secondary[0]].filter(Boolean);
+}
+function getMixedAncestryLabel(c) {
+  if (!c.isMixedAncestry) return c.ancestry;
+  if (c.mixedAncestryLabel) return c.mixedAncestryLabel;
+  const parts = [c.ancestry, c.ancestrySecondary].filter(Boolean);
+  return parts.length === 2 ? `${parts[0]}-${parts[1]}` : parts[0] || "";
+}
+
 const DOMAIN_CARDS = {
   Arcana: [
     {
@@ -587,7 +615,7 @@ function PickerAccordion({ items, selected, onSelect, accentColor }) {
 // ═══════════════════════════════════════════════════════════════
 
 function newChar(id) {
-  return { _id: id, name: "", pronouns: "", level: 1, className: "", subclass: "", ancestry: "", community: "", communityNotes: "", traits: { Agility: 0, Strength: 0, Finesse: 0, Instinct: 0, Presence: 0, Knowledge: 0 }, hp: Array(10).fill(false), stress: Array(7).fill(false), hope: [true, true, false, false, false, false], armorSlots: Array(12).fill(false), primaryWeapon: "", secondaryWeapon: "", armor: "", exp1: "", exp1Val: 2, exp2: "", exp2Val: 2, inventory: "", goldH: 1, goldB: 0, goldC: 0, notes: "", selectedCards: [] };
+  return { _id: id, name: "", pronouns: "", level: 1, className: "", subclass: "", ancestry: "", isMixedAncestry: false, ancestrySecondary: "", mixedFeaturePick: "A", mixedAncestryLabel: "", community: "", communityNotes: "", traits: { Agility: 0, Strength: 0, Finesse: 0, Instinct: 0, Presence: 0, Knowledge: 0 }, hp: Array(10).fill(false), stress: Array(7).fill(false), hope: [true, true, false, false, false, false], armorSlots: Array(12).fill(false), primaryWeapon: "", secondaryWeapon: "", armor: "", exp1: "", exp1Val: 2, exp2: "", exp2Val: 2, inventory: "", goldH: 1, goldB: 0, goldC: 0, notes: "", selectedCards: [] };
 }
 
 // ── CLASS COLOR MAP ──────────────────────────────────────────
@@ -620,7 +648,7 @@ function CharacterSelect({ characters, onSelect, onCreate, onDelete, onImport })
           const clsColor = CLASS_COLORS[ch.className] || P.accent;
           const prof = ch.level <= 1 ? 1 : ch.level <= 4 ? 2 : ch.level <= 7 ? 3 : 4;
           const hpMarked = ch.hp.filter(Boolean).length;
-          const maxHp = (cls ? cls.hp : 6) + (ch.ancestry === "Giant" ? 1 : 0) + (ch.className === "Wizard" && ch.subclass === "School of War" ? 1 : 0);
+          const maxHp = (cls ? cls.hp : 6) + (hasAncestryFeature(ch, "Giant", 0) ? 1 : 0) + (ch.className === "Wizard" && ch.subclass === "School of War" ? 1 : 0);
           return (
             <div key={ch._id} style={{ background: P.card, borderRadius: 14, border: `1px solid ${P.border}`, overflow: "hidden", transition: "border-color .2s", cursor: "pointer" }}
               onClick={() => onSelect(idx)}>
@@ -639,7 +667,7 @@ function CharacterSelect({ characters, onSelect, onCreate, onDelete, onImport })
                   <div style={{ fontSize: 12, color: clsColor, fontWeight: 700, marginTop: 1 }}>
                     {ch.className ? `Lv${ch.level} ${ch.className}${ch.subclass ? ` · ${ch.subclass}` : ""}` : <span style={{ color: P.textMuted, fontWeight: 400 }}>No class selected</span>}
                   </div>
-                  {ch.ancestry && <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{ch.ancestry}{ch.community ? ` · ${ch.community}` : ""}</div>}
+                  {ch.ancestry && <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{getMixedAncestryLabel(ch)}{ch.community ? ` · ${ch.community}` : ""}</div>}
                 </div>
                 {/* Mini stat block */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
@@ -739,6 +767,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [editingClass, setEditingClass] = useState(false);
   const [editingSubclass, setEditingSubclass] = useState(false);
   const [editingAncestry, setEditingAncestry] = useState(false);
+  const [editingAncestrySecondary, setEditingAncestrySecondary] = useState(false);
   const [editingCommunity, setEditingCommunity] = useState(false);
   const [swapCardsOnRest, setSwapCardsOnRest] = useState(false);
   const [cardSwapOpen, setCardSwapOpen] = useState(false);
@@ -762,9 +791,9 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   let stressBonus = 0;
   let evasionBonus = 0;
   // Ancestry bonuses
-  if (c.ancestry === "Giant")  hpBonus      += 1; // Endurance
-  if (c.ancestry === "Human")  stressBonus  += 1; // High Stamina
-  if (c.ancestry === "Simiah") evasionBonus += 1; // Nimble
+  if (hasAncestryFeature(c, "Giant",  0)) hpBonus      += 1; // Endurance (feat 0)
+  if (hasAncestryFeature(c, "Human",  0)) stressBonus  += 1; // High Stamina (feat 0)
+  if (hasAncestryFeature(c, "Simiah", 1)) evasionBonus += 1; // Nimble (feat 1)
   // Subclass bonuses
   if (c.className === "Wizard"   && c.subclass === "School of War") hpBonus     += 1; // Battlemage
   if (c.className === "Guardian" && c.subclass === "Vengeance")     stressBonus += 1; // At Ease
@@ -1479,37 +1508,168 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           {/* Ancestry */}
           <Card>
             {(() => {
-              const ancestryItems = Object.keys(ANCESTRIES).map(a => {
-                const fmtFeature = (f) => {
-                  const colonIdx = f.indexOf(":");
-                  if (colonIdx > 0) return `**${f.slice(0, colonIdx)}**:${f.slice(colonIdx + 1)}`;
-                  return f;
-                };
-                return {
-                  key: a,
-                  label: a,
-                  meta: ANCESTRIES[a].map(f => f.split(":")[0]).join(" · "),
-                  body: `## Ancestry Features\n\n` + ANCESTRIES[a].map(fmtFeature).join("\n\n"),
-                };
-              });
+              const ancestryItems = (excludeKey) => Object.keys(ANCESTRIES)
+                .filter(a => a !== excludeKey)
+                .map(a => {
+                  const fmtFeature = (f) => {
+                    const colonIdx = f.indexOf(":");
+                    if (colonIdx > 0) return `**${f.slice(0, colonIdx)}**:${f.slice(colonIdx + 1)}`;
+                    return f;
+                  };
+                  return {
+                    key: a,
+                    label: a,
+                    meta: ANCESTRIES[a].map(f => f.split(":")[0]).join(" · "),
+                    body: `## Ancestry Features\n\n` + ANCESTRIES[a].map(fmtFeature).join("\n\n"),
+                  };
+                });
+
+              const activeFeatures = getActiveAncestryFeatures(c);
+              const displayLabel = getMixedAncestryLabel(c);
+
+              // Feature pick options for mixed ancestry
+              const primary = c.ancestry ? ANCESTRIES[c.ancestry] : null;
+              const secondary = c.ancestrySecondary ? ANCESTRIES[c.ancestrySecondary] : null;
+              const optionA = primary && secondary
+                ? { feat1: primary[0]?.split(":")[0], feat2: secondary[1]?.split(":")[0], from1: c.ancestry, from2: c.ancestrySecondary }
+                : null;
+              const optionB = primary && secondary
+                ? { feat1: primary[1]?.split(":")[0], feat2: secondary[0]?.split(":")[0], from1: c.ancestry, from2: c.ancestrySecondary }
+                : null;
+
               return (
                 <>
+                  {/* Mode toggle */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <Lbl style={{ marginBottom: 0 }}>Ancestry</Lbl>
-                    {c.ancestry && <button onClick={() => setEditingAncestry(e => !e)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: editingAncestry ? P.accent + "22" : P.surface, color: editingAncestry ? P.accent : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>{editingAncestry ? "Done" : "Change"}</button>}
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        onClick={() => { u("isMixedAncestry", false); setEditingAncestry(false); setEditingAncestrySecondary(false); }}
+                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${P.border}`, background: !c.isMixedAncestry ? P.accent : P.surface, color: !c.isMixedAncestry ? "#fff" : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.5 }}>
+                        STANDARD
+                      </button>
+                      <button
+                        onClick={() => { u("isMixedAncestry", true); setEditingAncestry(false); setEditingAncestrySecondary(false); }}
+                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${P.border}`, background: c.isMixedAncestry ? P.accent : P.surface, color: c.isMixedAncestry ? "#fff" : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.5 }}>
+                        MIXED
+                      </button>
+                    </div>
                   </div>
-                  {(!c.ancestry || editingAncestry) && (
-                    <PickerAccordion items={ancestryItems} selected={c.ancestry} onSelect={v => { u("ancestry", v); setEditingAncestry(false); }} />
-                  )}
-                  {c.ancestry && !editingAncestry && (
-                    <>
-                      <div style={{ padding: "8px 12px", borderRadius: 8, background: P.accent + "14", border: `2px solid ${P.accent}`, marginBottom: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: P.accent }}>{c.ancestry}</div>
-                        <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{ANCESTRIES[c.ancestry].map(f => f.split(":")[0]).join(" · ")}</div>
+
+                  {/* ── STANDARD ANCESTRY ── */}
+                  {!c.isMixedAncestry && <>
+                    {c.ancestry && !editingAncestry && (
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+                        <button onClick={() => setEditingAncestry(e => !e)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Change</button>
                       </div>
-                      {ANCESTRIES[c.ancestry].map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}
-                    </>
-                  )}
+                    )}
+                    {(!c.ancestry || editingAncestry) && (
+                      <PickerAccordion items={ancestryItems(null)} selected={c.ancestry} onSelect={v => { u("ancestry", v); setEditingAncestry(false); }} />
+                    )}
+                    {c.ancestry && !editingAncestry && (
+                      <>
+                        <div style={{ padding: "8px 12px", borderRadius: 8, background: P.accent + "14", border: `2px solid ${P.accent}`, marginBottom: 8 }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: P.accent }}>{c.ancestry}</div>
+                          <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{ANCESTRIES[c.ancestry].map(f => f.split(":")[0]).join(" · ")}</div>
+                        </div>
+                        {ANCESTRIES[c.ancestry].map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}
+                      </>
+                    )}
+                  </>}
+
+                  {/* ── MIXED ANCESTRY ── */}
+                  {c.isMixedAncestry && <>
+                    {/* Rulebook reminder */}
+                    <div style={{ fontSize: 11, color: P.textMuted, background: P.surface, borderRadius: 6, padding: "6px 10px", marginBottom: 12, lineHeight: 1.5, border: `1px solid ${P.border}` }}>
+                      <span style={{ color: P.accent, fontWeight: 700 }}>Mixed Ancestry:</span> Choose the <strong>1st feature</strong> from one ancestry and the <strong>2nd feature</strong> from another.
+                    </div>
+
+                    {/* Primary ancestry picker */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: P.textMuted, letterSpacing: 0.5 }}>PRIMARY ANCESTRY</div>
+                        {c.ancestry && !editingAncestry && (
+                          <button onClick={() => setEditingAncestry(e => !e)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editingAncestry ? P.accent + "22" : P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Change</button>
+                        )}
+                      </div>
+                      {(!c.ancestry || editingAncestry) && (
+                        <PickerAccordion items={ancestryItems(c.ancestrySecondary)} selected={c.ancestry} onSelect={v => { u("ancestry", v); setEditingAncestry(false); }} />
+                      )}
+                      {c.ancestry && !editingAncestry && (
+                        <div style={{ padding: "6px 10px", borderRadius: 7, background: P.accent + "14", border: `1px solid ${P.accent}55` }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: P.accent }}>{c.ancestry}</div>
+                          <div style={{ fontSize: 10, color: P.textMuted, marginTop: 1 }}>{(ANCESTRIES[c.ancestry] || []).map((f,i) => `${i===0?"①":"②"} ${f.split(":")[0]}`).join("  ")}</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Secondary ancestry picker */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: P.textMuted, letterSpacing: 0.5 }}>SECONDARY ANCESTRY</div>
+                        {c.ancestrySecondary && !editingAncestrySecondary && (
+                          <button onClick={() => setEditingAncestrySecondary(e => !e)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Change</button>
+                        )}
+                      </div>
+                      {(!c.ancestrySecondary || editingAncestrySecondary) && (
+                        <PickerAccordion items={ancestryItems(c.ancestry)} selected={c.ancestrySecondary} onSelect={v => { u("ancestrySecondary", v); setEditingAncestrySecondary(false); }} />
+                      )}
+                      {c.ancestrySecondary && !editingAncestrySecondary && (
+                        <div style={{ padding: "6px 10px", borderRadius: 7, background: P.accent + "14", border: `1px solid ${P.accent}55` }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: P.accent }}>{c.ancestrySecondary}</div>
+                          <div style={{ fontSize: 10, color: P.textMuted, marginTop: 1 }}>{(ANCESTRIES[c.ancestrySecondary] || []).map((f,i) => `${i===0?"①":"②"} ${f.split(":")[0]}`).join("  ")}</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Feature combination picker */}
+                    {c.ancestry && c.ancestrySecondary && optionA && optionB && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: P.textMuted, letterSpacing: 0.5, marginBottom: 6 }}>CHOOSE YOUR FEATURES</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {[
+                            { val: "A", opt: optionA },
+                            { val: "B", opt: optionB },
+                          ].map(({ val, opt }) => (
+                            <button key={val} onClick={() => u("mixedFeaturePick", val)}
+                              style={{ textAlign: "left", padding: "8px 12px", borderRadius: 8, border: `2px solid ${c.mixedFeaturePick === val ? P.accent : P.border}`, background: c.mixedFeaturePick === val ? P.accent + "18" : P.surface, cursor: "pointer", fontFamily: "inherit", transition: "border-color .15s, background .15s" }}>
+                              <div style={{ fontSize: 12, fontWeight: 800, color: c.mixedFeaturePick === val ? P.accent : P.text, marginBottom: 2 }}>
+                                ① {opt.feat1} <span style={{ color: P.textMuted, fontWeight: 400 }}>({opt.from1})</span>
+                                <span style={{ color: P.textMuted }}> + </span>
+                                ② {opt.feat2} <span style={{ color: P.textMuted, fontWeight: 400 }}>({opt.from2})</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom name */}
+                    {c.ancestry && c.ancestrySecondary && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: P.textMuted, letterSpacing: 0.5, marginBottom: 4 }}>CUSTOM ANCESTRY NAME <span style={{ fontWeight: 400, textTransform: "none" }}>(optional)</span></div>
+                        <input
+                          type="text"
+                          value={c.mixedAncestryLabel}
+                          onChange={e => u("mixedAncestryLabel", e.target.value)}
+                          placeholder={`e.g. "${c.ancestry.toLowerCase()}-${c.ancestrySecondary.toLowerCase()}" or a custom name`}
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: 7, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 12, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Active features display */}
+                    {activeFeatures.length > 0 && (
+                      <>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: P.textMuted, letterSpacing: 0.5, marginBottom: 6, marginTop: 4 }}>ACTIVE FEATURES</div>
+                        <div style={{ padding: "8px 12px", borderRadius: 8, background: P.accent + "14", border: `2px solid ${P.accent}`, marginBottom: 8 }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: P.accent }}>{displayLabel || "Mixed Ancestry"}</div>
+                          <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{activeFeatures.map(f => f.split(":")[0]).join(" · ")}</div>
+                        </div>
+                        {activeFeatures.map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}
+                      </>
+                    )}
+                  </>}
                 </>
               );
             })()}

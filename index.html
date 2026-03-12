@@ -768,6 +768,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [editingSubclass, setEditingSubclass] = useState(false);
   const [editingAncestry, setEditingAncestry] = useState(false);
   const [editingAncestrySecondary, setEditingAncestrySecondary] = useState(false);
+  const [editingMixed, setEditingMixed] = useState(false);
   const [editingCommunity, setEditingCommunity] = useState(false);
   const [swapCardsOnRest, setSwapCardsOnRest] = useState(false);
   const [cardSwapOpen, setCardSwapOpen] = useState(false);
@@ -1537,32 +1538,54 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 ? { feat1: primary[1]?.split(":")[0], feat2: secondary[0]?.split(":")[0], from1: c.ancestry, from2: c.ancestrySecondary }
                 : null;
 
+              // Mixed is fully locked when both ancestries + pick exist and not in edit mode
+              const mixedComplete = c.isMixedAncestry && c.ancestry && c.ancestrySecondary && c.mixedFeaturePick;
+              const mixedLocked = mixedComplete && !editingMixed;
+              // Can confirm once both ancestries are picked
+              const canConfirmMixed = c.ancestry && c.ancestrySecondary && c.mixedFeaturePick;
+
               return (
                 <>
-                  {/* Mode toggle */}
+                  {/* ── HEADER ROW ── */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <Lbl style={{ marginBottom: 0 }}>Ancestry</Lbl>
                     <div style={{ display: "flex", gap: 4 }}>
-                      <button
-                        onClick={() => { u("isMixedAncestry", false); setEditingAncestry(false); setEditingAncestrySecondary(false); }}
-                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${P.border}`, background: !c.isMixedAncestry ? P.accent : P.surface, color: !c.isMixedAncestry ? "#fff" : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.5 }}>
-                        STANDARD
-                      </button>
-                      <button
-                        onClick={() => { u("isMixedAncestry", true); setEditingAncestry(false); setEditingAncestrySecondary(false); }}
-                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${P.border}`, background: c.isMixedAncestry ? P.accent : P.surface, color: c.isMixedAncestry ? "#fff" : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.5 }}>
-                        MIXED
-                      </button>
+                      {/* Show Change button when locked (standard or mixed) */}
+                      {((!c.isMixedAncestry && c.ancestry && !editingAncestry) || mixedLocked) && (
+                        <button
+                          onClick={() => { if (c.isMixedAncestry) { setEditingMixed(true); setEditingAncestry(false); setEditingAncestrySecondary(false); } else { setEditingAncestry(true); } }}
+                          style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>
+                          Change
+                        </button>
+                      )}
+                      {/* Confirm button during mixed edit, once ready */}
+                      {c.isMixedAncestry && editingMixed && canConfirmMixed && (
+                        <button
+                          onClick={() => { setEditingMixed(false); setEditingAncestry(false); setEditingAncestrySecondary(false); }}
+                          style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.accent}`, background: P.accent, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>
+                          Confirm
+                        </button>
+                      )}
+                      {/* Mode toggle — only visible when not locked */}
+                      {(!mixedLocked && (!c.ancestry || editingAncestry || c.isMixedAncestry)) && (
+                        <>
+                          <button
+                            onClick={() => { u("isMixedAncestry", false); setEditingMixed(false); setEditingAncestry(false); setEditingAncestrySecondary(false); }}
+                            style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${P.border}`, background: !c.isMixedAncestry ? P.accent : P.surface, color: !c.isMixedAncestry ? "#fff" : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.5 }}>
+                            STANDARD
+                          </button>
+                          <button
+                            onClick={() => { u("isMixedAncestry", true); setEditingMixed(true); setEditingAncestry(false); setEditingAncestrySecondary(false); }}
+                            style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: `1px solid ${P.border}`, background: c.isMixedAncestry ? P.accent : P.surface, color: c.isMixedAncestry ? "#fff" : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.5 }}>
+                            MIXED
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   {/* ── STANDARD ANCESTRY ── */}
                   {!c.isMixedAncestry && <>
-                    {c.ancestry && !editingAncestry && (
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-                        <button onClick={() => setEditingAncestry(e => !e)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Change</button>
-                      </div>
-                    )}
                     {(!c.ancestry || editingAncestry) && (
                       <PickerAccordion items={ancestryItems(null)} selected={c.ancestry} onSelect={v => { u("ancestry", v); setEditingAncestry(false); }} />
                     )}
@@ -1577,8 +1600,20 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                     )}
                   </>}
 
-                  {/* ── MIXED ANCESTRY ── */}
-                  {c.isMixedAncestry && <>
+                  {/* ── MIXED ANCESTRY — LOCKED VIEW ── */}
+                  {mixedLocked && <>
+                    <div style={{ padding: "8px 12px", borderRadius: 8, background: P.accent + "14", border: `2px solid ${P.accent}`, marginBottom: 8 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: P.accent }}>{displayLabel || "Mixed Ancestry"}</div>
+                      <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>
+                        {c.ancestry} + {c.ancestrySecondary}
+                        {c.mixedAncestryLabel ? ` · "${c.mixedAncestryLabel}"` : ""}
+                      </div>
+                    </div>
+                    {activeFeatures.map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}
+                  </>}
+
+                  {/* ── MIXED ANCESTRY — EDIT VIEW ── */}
+                  {c.isMixedAncestry && !mixedLocked && <>
                     {/* Rulebook reminder */}
                     <div style={{ fontSize: 11, color: P.textMuted, background: P.surface, borderRadius: 6, padding: "6px 10px", marginBottom: 12, lineHeight: 1.5, border: `1px solid ${P.border}` }}>
                       <span style={{ color: P.accent, fontWeight: 700 }}>Mixed Ancestry:</span> Choose the <strong>1st feature</strong> from one ancestry and the <strong>2nd feature</strong> from another.
@@ -1589,7 +1624,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: P.textMuted, letterSpacing: 0.5 }}>PRIMARY ANCESTRY</div>
                         {c.ancestry && !editingAncestry && (
-                          <button onClick={() => setEditingAncestry(e => !e)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editingAncestry ? P.accent + "22" : P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Change</button>
+                          <button onClick={() => setEditingAncestry(e => !e)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Change</button>
                         )}
                       </div>
                       {(!c.ancestry || editingAncestry) && (
@@ -1622,7 +1657,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                       )}
                     </div>
 
-                    {/* Feature combination picker */}
+                    {/* Feature combination picker — only shown once both ancestries are chosen */}
                     {c.ancestry && c.ancestrySecondary && optionA && optionB && (
                       <div style={{ marginBottom: 10 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: P.textMuted, letterSpacing: 0.5, marginBottom: 6 }}>CHOOSE YOUR FEATURES</div>
@@ -1658,16 +1693,13 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                       </div>
                     )}
 
-                    {/* Active features display */}
-                    {activeFeatures.length > 0 && (
-                      <>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: P.textMuted, letterSpacing: 0.5, marginBottom: 6, marginTop: 4 }}>ACTIVE FEATURES</div>
-                        <div style={{ padding: "8px 12px", borderRadius: 8, background: P.accent + "14", border: `2px solid ${P.accent}`, marginBottom: 8 }}>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: P.accent }}>{displayLabel || "Mixed Ancestry"}</div>
-                          <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{activeFeatures.map(f => f.split(":")[0]).join(" · ")}</div>
-                        </div>
-                        {activeFeatures.map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}
-                      </>
+                    {/* Confirm strip — sticky at bottom of edit section */}
+                    {canConfirmMixed && (
+                      <button
+                        onClick={() => { setEditingMixed(false); setEditingAncestry(false); setEditingAncestrySecondary(false); }}
+                        style={{ width: "100%", marginTop: 4, padding: "10px", borderRadius: 8, border: `2px solid ${P.accent}`, background: P.accent, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 13, letterSpacing: 0.5 }}>
+                        Confirm Mixed Ancestry
+                      </button>
                     )}
                   </>}
                 </>

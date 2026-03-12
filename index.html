@@ -970,39 +970,87 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   if (c.className === "Wizard"   && c.subclass === "School of War") hpBonus     += 1; // Battlemage
   if (c.className === "Guardian" && c.subclass === "Vengeance")     stressBonus += 1; // At Ease
 
+  // ── Gear references (needed early for trait modifiers) ──────────────
+  const pw = WEAPONS_PRIMARY.find(x => x.name === c.primaryWeapon);
+  const sw = WEAPONS_SECONDARY.find(x => x.name === c.secondaryWeapon);
+  const sA = ARMOR.find(a => a.name === c.armor);
+
+  // ── Trait modifiers from equipment ───────────────────────────────────
+  // Full Plate: "Very Heavy: −2 Eva; −1 Agility"
+  const armorAgiPen = (sA && sA.feature.includes("−1 Agility")) ? -1 : 0;
+  // Cumbersome primary weapons (Halberd, Spear, Longbow): −1 Finesse
+  const weaponFinPen = (pw && pw.feature.includes("Cumbersome")) ? -1 : 0;
+  // Effective traits = base traits + all equipment modifiers
+  const traitMods = { Agility: armorAgiPen, Strength: 0, Finesse: weaponFinPen, Instinct: 0, Presence: 0, Knowledge: 0 };
+  const effTraits = {};
+  TRAIT_KEYS.forEach(t => { effTraits[t] = (c.traits[t] || 0) + traitMods[t]; });
+
+  // ── Domain card flags ────────────────────────────────────────────────
+  const selectedCards = c.selectedCards || [];
+  const hasUntouchable = selectedCards.includes("Bone::Untouchable");
+  const hasBareBones   = selectedCards.includes("Valor::Bare Bones");
+  // Bone::Untouchable — passive Evasion bonus = ½ effective Agility (rounded down)
+  if (hasUntouchable) evasionBonus += Math.floor(effTraits.Agility / 2);
+
   const maxHp     = (cls ? cls.hp : 6) + hpBonus;
   const maxStress = 6 + stressBonus;
   const baseEv = cls ? cls.evasion : 10;
   const prof = c.level <= 1 ? 1 : c.level <= 4 ? 2 : c.level <= 7 ? 3 : 4;
-  const sA = ARMOR.find(a => a.name === c.armor);
-  const mT = sA ? parseInt(sA.thresholds.split("/")[0]) + c.level : c.level;
-  const sT = sA ? parseInt(sA.thresholds.split("/")[1]) + c.level : c.level * 2;
-  const aS = sA ? sA.score : 0;
-  let eM = 0; if (sA) { if (sA.feature.includes("+1")) eM += 1; if (sA.feature.includes("−1 Eva") || sA.feature.includes("−1 Evasion")) eM -= 1; if (sA.feature.includes("−2 Eva")) eM -= 2; }
+
+  // ── Damage thresholds ────────────────────────────────────────────────
+  const bbTier = c.level <= 4 ? 0 : c.level <= 7 ? 1 : c.level <= 10 ? 2 : 3;
+  const BB_THRESHOLDS = [[9,19],[11,24],[13,31],[15,38]];
+  const mT = sA ? parseInt(sA.thresholds.split("/")[0]) + c.level
+           : hasBareBones ? BB_THRESHOLDS[bbTier][0] + c.level
+           : c.level;
+  const sT = sA ? parseInt(sA.thresholds.split("/")[1]) + c.level
+           : hasBareBones ? BB_THRESHOLDS[bbTier][1] + c.level
+           : c.level * 2;
+
+  // ── Armor Score — base + shield bonuses ─────────────────────────────
+  // Round Shield: +1 Armor Score  |  Tower Shield: +2 Armor Score
+  const shieldBonus = sw ? (sw.feature.includes("+2 Armor Score") ? 2 : sw.feature.includes("+1 Armor Score") ? 1 : 0) : 0;
+  const aS = (sA ? sA.score : hasBareBones ? Math.max(0, 3 + effTraits.Strength) : 0) + shieldBonus;
+
+  // ── Evasion modifier — armor + weapons + shields ─────────────────────
+  // Armor: Gambeson +1, Chainmail −1, Full Plate −2
+  let eM = 0;
+  if (sA) {
+    if (sA.feature.includes("+1 Evasion") || sA.feature.includes("+1 Eva")) eM += 1;
+    if (sA.feature.includes("−1 Eva") || sA.feature.includes("−1 Evasion")) eM -= 1;
+    if (sA.feature.includes("−2 Eva") || sA.feature.includes("−2 Evasion")) eM -= 2;
+  }
+  // Primary weapons: Greatsword "Massive: −1 Eva", Warhammer "Heavy: −1 Evasion"
+  if (pw) {
+    if (pw.feature.includes("−1 Eva") || pw.feature.includes("−1 Evasion")) eM -= 1;
+    if (pw.feature.includes("−2 Eva")) eM -= 2;
+  }
+  // Secondary weapons: Tower Shield "Barrier: +2 Armor Score; −1 Eva"
+  if (sw) {
+    if (sw.feature.includes("−1 Eva") || sw.feature.includes("−1 Evasion")) eM -= 1;
+  }
   const fEv = baseEv + eM + evasionBonus;
 
-  // Build quick actions
+  // Build quick actions (pw/sw already declared above; use effTraits for accurate modifiers)
   const actions = [];
-  const pw = WEAPONS_PRIMARY.find(x => x.name === c.primaryWeapon);
-  const sw = WEAPONS_SECONDARY.find(x => x.name === c.secondaryWeapon);
   if (pw) {
-    const mod = c.traits[pw.trait] || 0;
+    const mod = effTraits[pw.trait] || 0;
     const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
     actions.push({ label: pw.name, detail: `${pw.trait} ${modStr} | ${pw.range} | ${prof}${pw.damage} ${pw.type}`, sub: pw.feature, type: "primary" });
   }
   if (sw) {
-    const mod = c.traits[sw.trait] || 0;
+    const mod = effTraits[sw.trait] || 0;
     const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
     actions.push({ label: sw.name, detail: `${sw.trait} ${modStr} | ${sw.range} | ${prof}${sw.damage} ${sw.type}`, sub: sw.feature, type: "secondary" });
   }
   if (sub && sub.spellcast) {
-    const mod = c.traits[sub.spellcast] || 0;
+    const mod = effTraits[sub.spellcast] || 0;
     const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
     actions.push({ label: "Spellcast", detail: `${sub.spellcast} ${modStr}`, sub: "", type: "spell" });
   }
-  // Common trait actions
+  // Common trait actions (use effective traits to reflect equipment penalties)
   TRAIT_KEYS.forEach(t => {
-    const v = c.traits[t]; const d = v >= 0 ? `+${v}` : `${v}`;
+    const v = effTraits[t]; const d = v >= 0 ? `+${v}` : `${v}`;
     actions.push({ label: `${t} Roll`, detail: d, sub: TRAIT_ACTIONS[t], type: "trait" });
   });
 
@@ -1453,21 +1501,34 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               {c.pronouns && <span style={{ fontSize: 11, color: P.textMuted }}> ({c.pronouns})</span>}
               <span style={{ fontSize: 11, color: P.textMuted, marginLeft: 8 }}>Lv{c.level}{cls ? ` ${c.className}` : ""}{c.subclass ? ` · ${c.subclass}` : ""}</span>
             </div>
-            {/* Trait bar */}
+            {/* Trait bar — shows effective traits (base + equipment modifiers) */}
             <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-              {TRAIT_KEYS.map(t => (
-                <div key={t} style={{ fontSize: 11, color: P.textMuted }}>
-                  <span style={{ fontWeight: 700, fontSize: 10 }}>{TRAIT_SHORT[t]}</span>{" "}
-                  <span style={{ fontWeight: 800, fontFamily: mono, color: c.traits[t] > 0 ? P.hp : c.traits[t] < 0 ? P.fear : P.textMuted }}>{fmtMod(c.traits[t])}</span>
-                </div>
-              ))}
+              {TRAIT_KEYS.map(t => {
+                const base = c.traits[t] || 0;
+                const mod  = traitMods[t] || 0;
+                const eff  = effTraits[t];
+                return (
+                  <div key={t} style={{ fontSize: 11, color: P.textMuted }}>
+                    <span style={{ fontWeight: 700, fontSize: 10 }}>{TRAIT_SHORT[t]}</span>{" "}
+                    <span style={{ fontWeight: 800, fontFamily: mono, color: eff > 0 ? P.hp : eff < 0 ? P.fear : P.textMuted }}>{fmtMod(eff)}</span>
+                    {mod !== 0 && <span title={mod < 0 ? `${mod} from equipment` : `+${mod} from equipment`} style={{ fontSize: 8, color: mod < 0 ? P.fear : P.hp, marginLeft: 1, verticalAlign: "super" }}>▼</span>}
+                  </div>
+                );
+              })}
             </div>
             {/* Stat bar */}
             <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, color: P.textMuted, flexWrap: "wrap" }}>
-              <span>Eva <strong style={{ color: P.accent }}>{fEv}</strong></span>
+              <span>Eva <strong style={{ color: P.accent }}>{fEv}</strong>
+                {hasUntouchable && <span title="Untouchable: +½ Agility" style={{ fontSize: 9, color: "#f97316", marginLeft: 2 }}>✦</span>}
+                {eM > 0 && <span title={`Equipment: +${eM} Evasion`} style={{ fontSize: 9, color: P.hp, marginLeft: 2 }}>▲</span>}
+                {eM < 0 && <span title={`Equipment: ${eM} Evasion`} style={{ fontSize: 9, color: P.fear, marginLeft: 2 }}>▼</span>}
+              </span>
               <span>HP <strong style={{ color: P.fear }}>{maxHp}</strong></span>
-              <span>Armor <strong style={{ color: P.text }}>{aS}</strong></span>
-              <span>Thresh <strong style={{ color: P.stress }}>{mT}/{sT}</strong></span>
+              <span>Armor <strong style={{ color: P.text }}>{aS}</strong>
+                {shieldBonus > 0 && <span title={`${sw.name}: +${shieldBonus} Armor Score`} style={{ fontSize: 9, color: P.hp, marginLeft: 2 }}>▲</span>}
+                {hasBareBones && !sA && <span title="Bare Bones: 3+Strength" style={{ fontSize: 9, color: "#f59e0b", marginLeft: 2 }}>✦</span>}
+              </span>
+              <span>Thresh <strong style={{ color: P.stress }}>{mT}/{sT}</strong>{hasBareBones && !sA && <span title="Bare Bones thresholds" style={{ fontSize: 9, color: "#f59e0b", marginLeft: 2 }}>✦</span>}</span>
               <span>Prof <strong style={{ color: P.accent }}>{prof}</strong></span>
             </div>
           </>
@@ -1482,9 +1543,23 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           {/* Trackers */}
           <Card>
             <div style={{ display: "flex", justifyContent: "space-around", textAlign: "center", marginBottom: 10 }}>
-              <div><div style={{ fontSize: 22, fontWeight: 800, color: P.accent, fontFamily: mono }}>{fEv}</div><div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>EVASION</div></div>
-              <div><div style={{ fontSize: 22, fontWeight: 800, color: P.text, fontFamily: mono }}>{aS}</div><div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>ARMOR</div></div>
-              <div><div style={{ fontSize: 22, fontWeight: 800, color: P.stress, fontFamily: mono }}>{mT}/{sT}</div><div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>THRESHOLDS</div></div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: P.accent, fontFamily: mono }}>{fEv}</div>
+                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>EVASION{hasUntouchable ? <span style={{ color: "#f97316" }}> ✦</span> : ""}{eM > 0 ? <span style={{ color: P.hp }}> ▲</span> : ""}{eM < 0 ? <span style={{ color: P.fear }}> ▼</span> : ""}</div>
+                {hasUntouchable && <div style={{ fontSize: 8, color: "#f97316", marginTop: 1 }}>+½ Agility (Untouchable)</div>}
+                {eM !== 0 && <div style={{ fontSize: 8, color: eM > 0 ? P.hp : P.fear, marginTop: hasUntouchable ? 0 : 1 }}>{eM > 0 ? `+${eM}` : eM} from gear</div>}
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: P.text, fontFamily: mono }}>{aS}</div>
+                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>ARMOR{shieldBonus > 0 ? <span style={{ color: P.hp }}> ▲</span> : ""}{hasBareBones && !sA ? <span style={{ color: "#f59e0b" }}> ✦</span> : ""}</div>
+                {shieldBonus > 0 && <div style={{ fontSize: 8, color: P.hp, marginTop: 1 }}>+{shieldBonus} from shield</div>}
+                {hasBareBones && !sA && <div style={{ fontSize: 8, color: "#f59e0b", marginTop: 1 }}>3+STR (Bare Bones)</div>}
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: P.stress, fontFamily: mono }}>{mT}/{sT}</div>
+                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>THRESHOLDS{hasBareBones && !sA ? <span style={{ color: "#f59e0b" }}> ✦</span> : ""}</div>
+                {hasBareBones && !sA && <div style={{ fontSize: 8, color: "#f59e0b", marginTop: 1 }}>Bare Bones (Tier {bbTier+1})</div>}
+              </div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-around", textAlign: "center", fontSize: 9, color: P.textMuted, marginBottom: 6 }}>
               <span>Minor: &lt;{mT} → 1HP</span><span>Major: {mT}–{sT-1} → 2HP</span><span>Severe: {sT}+ → 3HP</span>
@@ -1512,7 +1587,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           </div>
 
           {aS > 0 && <Card>
-            <Lbl>Armor Slots ({c.armorSlots.slice(0, aS).filter(Boolean).length}/{aS})</Lbl>
+            <Lbl>Armor Slots ({c.armorSlots.slice(0, aS).filter(Boolean).length}/{aS})
+              {hasBareBones && !sA ? <span style={{ fontSize: 9, color: "#f59e0b", fontWeight: 400, marginLeft: 4 }}>✦ Bare Bones</span> : ""}
+              {shieldBonus > 0 ? <span style={{ fontSize: 9, color: P.hp, fontWeight: 400, marginLeft: 4 }}>▲ +{shieldBonus} from {sw.name}</span> : ""}
+            </Lbl>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{c.armorSlots.slice(0, aS).map((f, i) => <Pip key={i} filled={f} color={P.accent} onClick={() => tog("armorSlots", i)} size={24} />)}</div>
           </Card>}
 

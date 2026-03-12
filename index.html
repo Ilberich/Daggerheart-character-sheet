@@ -28,6 +28,21 @@
     input, textarea, select, button { font-family: inherit; }
     /* Prevent pull-to-refresh fighting the app scroll */
     body { overscroll-behavior-y: contain; }
+    @keyframes tab-pulse {
+      0%, 100% { box-shadow: 0 0 0px 0px rgba(99,102,241,0); }
+      50%       { box-shadow: 0 0 8px 3px rgba(99,102,241,0.55); }
+    }
+    .tab-pulse { animation: tab-pulse 2s ease-in-out infinite; border-radius: 6px; }
+    @keyframes btn-pulse {
+      0%, 100% { box-shadow: 0 0 0px 0px rgba(99,102,241,0); }
+      50%       { box-shadow: 0 0 10px 4px rgba(99,102,241,0.5); }
+    }
+    .btn-pulse { animation: btn-pulse 2s ease-in-out infinite; }
+    @keyframes card-pulse {
+      0%, 100% { box-shadow: 0 0 0px 0px rgba(99,102,241,0); }
+      50%       { box-shadow: 0 0 12px 4px rgba(99,102,241,0.4); }
+    }
+    .card-pulse { animation: card-pulse 2s ease-in-out infinite; border-radius: 12px; }
   </style>
 </head>
 <body>
@@ -480,11 +495,11 @@ const P = { ...THEMES["Pulse"] };
 const sBtn = { width: 26, height: 26, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0 };
 const mono = "'JetBrains Mono', monospace";
 
-function TabBar({ tabs, active, onChange }) { return <div style={{ display: "flex", gap: 2, overflowX: "auto", padding: "0 12px", borderBottom: `1px solid ${P.border}`, background: P.bg, position: "sticky", top: 0, zIndex: 100 }}>{tabs.map(t => <button key={t} onClick={() => onChange(t)} style={{ padding: "10px 14px", fontSize: 13, fontWeight: active === t ? 700 : 500, color: active === t ? P.accent : P.textMuted, background: "none", border: "none", borderBottom: active === t ? `2px solid ${P.accent}` : "2px solid transparent", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>{t}</button>)}</div>; }
-function Card({ children, style }) { return <div style={{ background: P.card, borderRadius: 12, padding: 14, border: `1px solid ${P.border}`, ...style }}>{children}</div>; }
+function TabBar({ tabs, active, onChange, glowing = new Set() }) { return <div style={{ display: "flex", gap: 2, overflowX: "auto", padding: "0 12px", borderBottom: `1px solid ${P.border}`, background: P.bg, position: "sticky", top: 0, zIndex: 100 }}>{tabs.map(t => <button key={t} onClick={() => onChange(t)} className={glowing.has(t) && active !== t ? "tab-pulse" : ""} style={{ padding: "10px 14px", fontSize: 13, fontWeight: active === t ? 700 : 500, color: active === t ? P.accent : glowing.has(t) && active !== t ? P.accent : P.textMuted, background: "none", border: "none", borderBottom: active === t ? `2px solid ${P.accent}` : "2px solid transparent", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>{t}</button>)}</div>; }
+function Card({ children, style, className }) { return <div className={className || ""} style={{ background: P.card, borderRadius: 12, padding: 14, border: `1px solid ${P.border}`, ...style }}>{children}</div>; }
 function Lbl({ children, style }) { return <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: P.textMuted, marginBottom: 4, ...style }}>{children}</div>; }
 function Inp({ value, onChange, placeholder, style }) { return <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", ...style }} />; }
-function Sel({ value, onChange, children }) { return <select value={value} onChange={e => onChange(e.target.value)} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238890b0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32 }}>{children}</select>; }
+function Sel({ value, onChange, children, className }) { return <select value={value} onChange={e => onChange(e.target.value)} className={className || ""} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238890b0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32 }}>{children}</select>; }
 function Pip({ filled, color, onClick, size = 22 }) { return <div onClick={onClick} style={{ width: size, height: size, borderRadius: size / 2, border: `2px solid ${color}`, background: filled ? color : "transparent", cursor: "pointer", transition: "all .15s", flexShrink: 0 }} />; }
 
 function Feat({ title, text, startOpen }) {
@@ -757,6 +772,161 @@ function App() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// TRAIT ASSIGNMENT MODAL
+// ═══════════════════════════════════════════════════════════════
+function TraitModal({ currentTraits, suggestedTraits, pool, onConfirm, onClose }) {
+  // assignment: { AGI: poolId | null, ... }
+  const [assignment, setAssignment] = useState(() => {
+    // Pre-fill from current traits by greedily matching pool slots
+    const remaining = [...pool];
+    const result = {};
+    TRAIT_KEYS.forEach(t => {
+      const val = currentTraits[t];
+      const idx = remaining.findIndex(p => p.val === val);
+      if (idx >= 0) { result[t] = remaining[idx].id; remaining.splice(idx, 1); }
+      else result[t] = null;
+    });
+    return result;
+  });
+  const [selected, setSelected] = useState(null); // pool id of currently selected chip
+
+  const usedIds = new Set(Object.values(assignment).filter(v => v !== null));
+  const availablePool = pool.filter(p => !usedIds.has(p.id));
+  const allAssigned = TRAIT_KEYS.every(t => assignment[t] !== null);
+
+  const chipColor = val => val === 2 ? P.hp : val === 1 ? P.accent : val === 0 ? P.textMuted : P.fear;
+
+  const handleChipClick = id => {
+    setSelected(prev => prev === id ? null : id);
+  };
+
+  const handleStatClick = t => {
+    if (selected !== null) {
+      // Assign selected chip to this stat, returning any previous chip to pool
+      setAssignment(prev => ({ ...prev, [t]: selected }));
+      setSelected(null);
+    } else if (assignment[t] !== null) {
+      // Deselect: unassign this stat
+      setAssignment(prev => ({ ...prev, [t]: null }));
+    }
+  };
+
+  const handleSuggested = () => {
+    if (!suggestedTraits) return;
+    const remaining = [...pool];
+    const result = {};
+    TRAIT_KEYS.forEach(t => {
+      const val = suggestedTraits[t] ?? 0;
+      const idx = remaining.findIndex(p => p.val === val);
+      if (idx >= 0) { result[t] = remaining[idx].id; remaining.splice(idx, 1); }
+      else result[t] = null;
+    });
+    setAssignment(result);
+    setSelected(null);
+  };
+
+  const handleConfirm = () => {
+    const traits = {};
+    TRAIT_KEYS.forEach(t => {
+      const p = pool.find(p => p.id === assignment[t]);
+      traits[t] = p ? p.val : 0;
+    });
+    onConfirm(traits);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1002, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end" }}>
+      <div style={{ width: "100%", maxWidth: 480, background: P.card, borderRadius: "20px 20px 0 0", padding: "20px 16px 32px", border: `1px solid ${P.border}`, borderBottom: "none" }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: P.accent }}>Assign Traits</div>
+            <div style={{ fontSize: 11, color: P.textMuted, marginTop: 2 }}>Tap a modifier, then tap a stat to assign it</div>
+          </div>
+          {suggestedTraits && (
+            <button onClick={handleSuggested} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.hope, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Suggested</button>
+          )}
+        </div>
+
+        {/* Modifier chips */}
+        <div style={{ marginBottom: 16 }}>
+          <Lbl>Available Modifiers</Lbl>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {pool.map(p => {
+              const isUsed = usedIds.has(p.id);
+              const isSel  = selected === p.id;
+              const color  = chipColor(p.val);
+              return (
+                <div key={p.id} onClick={() => !isUsed && handleChipClick(p.id)} style={{
+                  width: 48, height: 48, borderRadius: 10,
+                  border: `2px solid ${isSel ? color : isUsed ? P.border : color + "88"}`,
+                  background: isSel ? color + "33" : isUsed ? P.surface : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 16, fontWeight: 800, fontFamily: mono,
+                  color: isUsed ? P.border : color,
+                  cursor: isUsed ? "default" : "pointer",
+                  opacity: isUsed ? 0.3 : 1,
+                  boxShadow: isSel ? `0 0 12px ${color}66` : "none",
+                  transition: "all .15s",
+                }}>{p.label}</div>
+              );
+            })}
+          </div>
+          {selected !== null && (
+            <div style={{ marginTop: 8, fontSize: 11, color: P.hope, fontWeight: 600 }}>
+              ✦ {pool.find(p => p.id === selected)?.label} selected — now tap a stat below to assign it
+            </div>
+          )}
+        </div>
+
+        {/* Stat rows */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+          {TRAIT_KEYS.map(t => {
+            const assignedPoolItem = pool.find(p => p.id === assignment[t]);
+            const val   = assignedPoolItem?.val ?? null;
+            const color = val !== null ? chipColor(val) : P.border;
+            const isTarget = selected !== null;
+            return (
+              <div key={t} onClick={() => handleStatClick(t)} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "10px 14px", borderRadius: 10,
+                border: `2px solid ${isTarget && val === null ? P.accent + "88" : val !== null ? color + "66" : P.border}`,
+                background: isTarget && val === null ? P.accent + "0d" : val !== null ? color + "12" : P.surface,
+                cursor: "pointer", transition: "all .15s",
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: P.text }}>{t}</div>
+                  <div style={{ fontSize: 10, color: P.textMuted }}>{TRAIT_ACTIONS[t]}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {val !== null ? (
+                    <>
+                      <span style={{ fontSize: 22, fontWeight: 800, fontFamily: mono, color }}>{assignedPoolItem.label}</span>
+                      <span style={{ fontSize: 10, color: P.textMuted }}>✕</span>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.border }}>—</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 10, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={handleConfirm} disabled={!allAssigned} style={{ flex: 2, padding: "12px", borderRadius: 10, border: "none", background: allAssigned ? P.accent : P.border, color: allAssigned ? "#fff" : P.textMuted, fontSize: 14, fontWeight: 800, cursor: allAssigned ? "pointer" : "default", fontFamily: "inherit", transition: "all .2s" }}>
+            {allAssigned ? "Confirm ✓" : `${TRAIT_KEYS.filter(t => assignment[t] === null).length} stat${TRAIT_KEYS.filter(t => assignment[t] === null).length !== 1 ? "s" : ""} remaining`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [tab, setTab] = useState("Play");
   const [editHdr, setEditHdr] = useState(false);
@@ -772,6 +942,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [editingCommunity, setEditingCommunity] = useState(false);
   const [swapCardsOnRest, setSwapCardsOnRest] = useState(false);
   const [cardSwapOpen, setCardSwapOpen] = useState(false);
+  const [traitModalOpen, setTraitModalOpen] = useState(false);
   const u = useCallback((k, v) => setC(p => ({ ...p, [k]: v })), [setC]);
   const uT = useCallback((t, v) => setC(p => ({ ...p, traits: { ...p.traits, [t]: v } })), [setC]);
   const tog = useCallback((k, i) => setC(p => { const a = [...p[k]]; a[i] = !a[i]; return { ...p, [k]: a }; }), [setC]);
@@ -836,6 +1007,17 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   });
 
   const tabs = ["Play", ...(c.subclass === "Beastbound" ? ["Companion"] : []), "Domains", "Class", "Heritage", "Gear", "Notes"];
+
+  // ── Incomplete-indicator logic ────────────────────────────
+  const traitsIncomplete = JSON.stringify(TRAIT_KEYS.map(t => c.traits[t]).sort((a,b) => a-b)) !== JSON.stringify([-1,0,0,1,1,2]);
+  const glowingTabs = new Set();
+  const maxLoadout = (c.className === "Wizard" && c.subclass === "School of Knowledge") ? 3 : 2;
+  if (!c.className || !c.subclass)                                        glowingTabs.add("Class");
+  if (!c.ancestry)                                                         glowingTabs.add("Heritage");
+  if (!c.primaryWeapon)                                                    glowingTabs.add("Gear");
+  if (!c.selectedCards || c.selectedCards.length < maxLoadout)             glowingTabs.add("Domains");
+  if (c.subclass === "Beastbound" && !c.companionName)                     glowingTabs.add("Companion");
+  // traitsAllZero check handled inline on the Edit Stats button
 
   const fmtMod = v => v >= 0 ? `+${v}` : `${v}`;
 
@@ -921,6 +1103,27 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             </div>
           </div>
         );
+      })()}
+
+      {/* ═══ TRAIT ASSIGNMENT MODAL ═══ */}
+      {traitModalOpen && (() => {
+        // The 6 modifier tokens — indices matter for identity (two +1s and two 0s are distinct slots)
+        const POOL = [
+          { id: 0, val: 2,  label: "+2" },
+          { id: 1, val: 1,  label: "+1" },
+          { id: 2, val: 1,  label: "+1" },
+          { id: 3, val: 0,  label: "0"  },
+          { id: 4, val: 0,  label: "0"  },
+          { id: 5, val: -1, label: "−1" },
+        ];
+        // Draft state lives inside this IIFE render — we lift it into a child component so it has its own useState
+        return <TraitModal
+          currentTraits={c.traits}
+          suggestedTraits={CLASSES[c.className]?.suggestedTraits}
+          pool={POOL}
+          onConfirm={traits => { setC(p => ({ ...p, traits })); setTraitModalOpen(false); }}
+          onClose={() => setTraitModalOpen(false)}
+        />;
       })()}
 
       {/* ═══ REST RESULTS ═══ */}
@@ -1205,14 +1408,15 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               <button onClick={() => u("level", Math.min(10, c.level + 1))} style={{ ...sBtn, width: 22, height: 22 }}>+</button>
               {cls && <button onClick={() => setC(p => ({ ...p, traits: { ...cls.suggestedTraits } }))} style={{ marginLeft: "auto", fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.accent, cursor: "pointer", fontFamily: "inherit" }}>Suggested Traits</button>}
             </div>
-            <Lbl style={{ marginTop: 4, marginBottom: 0 }}>Traits (distribute +2, +1, +1, 0, 0, −1)</Lbl>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+              <Lbl style={{ marginBottom: 0 }}>Traits</Lbl>
+              <button onClick={() => setTraitModalOpen(true)} className={traitsIncomplete ? "btn-pulse" : ""} style={{ fontSize: 11, padding: "5px 14px", borderRadius: 6, border: `1px solid ${P.accent}`, background: P.surface, color: P.accent, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Edit Stats</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 6 }}>
               {TRAIT_KEYS.map(t => (
-                <div key={t} style={{ display: "flex", alignItems: "center", gap: 4, background: P.surface, borderRadius: 6, padding: "4px 6px" }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: P.textMuted, minWidth: 28 }}>{TRAIT_SHORT[t]}</span>
-                  <button onClick={() => uT(t, Math.max(-3, c.traits[t] - 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>−</button>
-                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: c.traits[t] > 0 ? P.hp : c.traits[t] < 0 ? P.fear : P.textMuted, minWidth: 22, textAlign: "center" }}>{fmtMod(c.traits[t])}</span>
-                  <button onClick={() => uT(t, Math.min(5, c.traits[t] + 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>+</button>
+                <div key={t} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: P.surface, borderRadius: 6, padding: "5px 8px" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: P.textMuted }}>{TRAIT_SHORT[t]}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: c.traits[t] > 0 ? P.hp : c.traits[t] < 0 ? P.fear : P.textMuted }}>{fmtMod(c.traits[t])}</span>
                 </div>
               ))}
             </div>
@@ -1270,7 +1474,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
         )}
       </div>
 
-      <TabBar tabs={tabs} active={tab} onChange={setTab} />
+      <TabBar tabs={tabs} active={tab} onChange={setTab} glowing={glowingTabs} />
       <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
 
         {/* ═══ PLAY TAB ═══ */}
@@ -1316,7 +1520,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <Lbl style={{ marginBottom: 0 }}>Experiences</Lbl>
-              <button onClick={() => setEditExp(!editExp)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editExp ? P.accent : P.surface, color: editExp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit" }}>{editExp ? "Done" : "Edit"}</button>
+              <button onClick={() => setEditExp(!editExp)} className={!editExp && (!c.exp1 || !c.exp2) ? "btn-pulse" : ""} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editExp ? P.accent : P.surface, color: editExp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit" }}>{editExp ? "Done" : "Edit"}</button>
             </div>
             <div style={{ fontSize: 10, color: P.textMuted, marginBottom: 8 }}>Spend a Hope to add modifier to a roll</div>
             {editExp ? (
@@ -1441,7 +1645,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               };
             });
             return (
-              <Card>
+              <Card className={!c.className ? "card-pulse" : ""}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <Lbl style={{ marginBottom: 0 }}>Class</Lbl>
                   {c.className && <button onClick={() => setEditingClass(e => !e)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: editingClass ? P.accent + "22" : P.surface, color: editingClass ? P.accent : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>{editingClass ? "Done" : "Change"}</button>}
@@ -1459,7 +1663,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             );
           })()}
           {cls && <>
-            <Card>
+            <Card className={!c.subclass ? "card-pulse" : ""}>
               {(() => {
                 const subItems = Object.keys(cls.subclasses).map(n => {
                   const sc = cls.subclasses[n];
@@ -1507,7 +1711,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
         {/* ═══ HERITAGE TAB ═══ */}
         {tab === "Heritage" && <>
           {/* Ancestry */}
-          <Card>
+          <Card className={!c.ancestry ? "card-pulse" : ""}>
             {(() => {
               const ancestryItems = (excludeKey) => Object.keys(ANCESTRIES)
                 .filter(a => a !== excludeKey)
@@ -1754,7 +1958,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
 
         {/* ═══ GEAR TAB ═══ */}
         {tab === "Gear" && <>
-          <Card><Lbl>Primary Weapon</Lbl><Sel value={c.primaryWeapon} onChange={v => u("primaryWeapon", v)}><option value="">— Select —</option><optgroup label="Physical">{WEAPONS_PRIMARY.filter(w => w.type === "phy").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup><optgroup label="Magic (Spellcast)">{WEAPONS_PRIMARY.filter(w => w.type === "mag").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup></Sel>
+          <Card><Lbl>Primary Weapon</Lbl><Sel className={!c.primaryWeapon ? "btn-pulse" : ""} value={c.primaryWeapon} onChange={v => u("primaryWeapon", v)}><option value="">— Select —</option><optgroup label="Physical">{WEAPONS_PRIMARY.filter(w => w.type === "phy").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup><optgroup label="Magic (Spellcast)">{WEAPONS_PRIMARY.filter(w => w.type === "mag").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup></Sel>
             {pw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{pw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{pw.trait} ({fmtMod(c.traits[pw.trait] || 0)}) | {pw.range} | {prof}{pw.damage} {pw.type} | {pw.burden}</div>{pw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{pw.feature}</div>}</div>}
           </Card>
           <Card><Lbl>Secondary Weapon</Lbl><Sel value={c.secondaryWeapon} onChange={v => u("secondaryWeapon", v)}><option value="">— None —</option>{WEAPONS_SECONDARY.map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage}</option>)}</Sel>
@@ -1897,7 +2101,7 @@ function CompanionTab({ c, u, prof }) {
           <div style={{ fontSize: 15, fontWeight: 700, color: name ? P.hope : P.textMuted }}>{name || "Unnamed Companion"}</div>
           {type && <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{type}</div>}
         </div>
-        <button onClick={() => setEditComp(e => !e)} style={{ fontSize: 10, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: editComp ? P.accent : P.surface, color: editComp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
+        <button onClick={() => setEditComp(e => !e)} className={!editComp && !name ? "btn-pulse" : ""} style={{ fontSize: 10, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: editComp ? P.accent : P.surface, color: editComp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
           {editComp ? "Done" : "Edit"}
         </button>
       </div>
@@ -1992,7 +2196,7 @@ function CompanionTab({ c, u, prof }) {
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <Lbl style={{ marginBottom: 0 }}>Companion Experiences</Lbl>
-        <button onClick={() => setEditExp(e => !e)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editExp ? P.accent : P.surface, color: editExp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit" }}>{editExp ? "Done" : "Edit"}</button>
+        <button onClick={() => setEditExp(e => !e)} className={!editExp && (!c.companionExp1 || !c.companionExp2) ? "btn-pulse" : ""} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editExp ? P.accent : P.surface, color: editExp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit" }}>{editExp ? "Done" : "Edit"}</button>
       </div>
       <div style={{ fontSize: 10, color: P.textMuted, marginBottom: 8 }}>Spend a Hope to add to Spellcast Roll when commanding companion</div>
       {editExp ? (

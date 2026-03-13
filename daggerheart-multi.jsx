@@ -1390,26 +1390,43 @@ function DaggerheartSheet({ c, setC, onBack }) {
           // Once full, cards can only be swapped during a rest.
           // School of Knowledge Wizard: 'Prepared' foundation grants an extra card at creation
           const maxLoadout = (c.className === "Wizard" && c.subclass === "School of Knowledge") ? 3 : 2;
-          const canPickFreely = selCount < maxLoadout;
+          const isConfirmed = !!c.cardsConfirmed;
+          const isFull = selCount >= maxLoadout;
+          const isEditing = !isConfirmed;
+          const canAdd = !isFull && isEditing;
+          const canRemove = isEditing;
 
           const toggleCard = (domain, name) => {
             const key = `${domain}::${name}`;
             const already = c.selectedCards.includes(key);
-            if (already) u("selectedCards", c.selectedCards.filter(k => k !== key));
-            else if (selCount < maxLoadout) u("selectedCards", [...c.selectedCards, key]);
+            if (already && canRemove) u("selectedCards", c.selectedCards.filter(k => k !== key));
+            else if (!already && canAdd) u("selectedCards", [...c.selectedCards, key]);
           };
 
           return <>
             {/* Status bar */}
-            <Card style={{ background: selCount >= maxLoadout ? "#1a2a1a" : P.card, borderColor: selCount >= maxLoadout ? P.hp + "88" : P.border }}>
-              <div style={{ fontSize: 12, color: P.textMuted, marginBottom: canPickFreely ? 4 : 0 }}>
-                {canPickFreely && selCount === 0 && <span style={{ color: P.hope }}>Choose {maxLoadout} domain cards for your starting loadout.</span>}
-                {canPickFreely && selCount > 0 && <span>Selected {selCount} of {maxLoadout} — <span style={{ color: P.hope }}>choose {maxLoadout - selCount} more</span></span>}
-                {!canPickFreely && <span style={{ color: P.hp }}>✓ Loadout full ({selCount}/{maxLoadout}) — swap cards during a rest to change</span>}
+            <Card style={{ background: isFull ? "#1a2a1a" : P.card, borderColor: isFull ? P.hp + "88" : P.border }}>
+              <div style={{ fontSize: 12, color: P.textMuted, marginBottom: 4 }}>
+                {!isFull && selCount === 0 && <span style={{ color: P.hope }}>Choose {maxLoadout} domain cards for your starting loadout.</span>}
+                {!isFull && selCount > 0 && <span>Selected {selCount} of {maxLoadout} — <span style={{ color: P.hope }}>choose {maxLoadout - selCount} more</span></span>}
+                {isFull && !isConfirmed && <span style={{ color: P.hope }}>✓ Ready! Deselect to swap, or confirm your loadout.</span>}
+                {isFull && isConfirmed && <span style={{ color: P.hp }}>✓ Loadout confirmed ({selCount}/{maxLoadout})</span>}
               </div>
-              {canPickFreely && <div style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>Tap a card to add it to your loadout.</div>}
+              {!isFull && <div style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>Tap a card to add it to your loadout.</div>}
+              {isFull && !isConfirmed && (
+                <button onClick={() => u("cardsConfirmed", true)}
+                  style={{ marginTop: 6, width: "100%", padding: "8px", borderRadius: 8, border: "none", background: P.accent, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  Confirm ✓
+                </button>
+              )}
+              {isFull && isConfirmed && (
+                <button onClick={() => u("cardsConfirmed", false)}
+                  style={{ marginTop: 6, width: "100%", padding: "8px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Edit Loadout
+                </button>
+              )}
             </Card>
-            {/* Domain cards — interactive if under max, display-only if full */}
+            {/* Domain cards — interactive while editing, display-only when confirmed */}
             {domains.map(domain => (
               <div key={domain}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: 4 }}>
@@ -1419,16 +1436,16 @@ function DaggerheartSheet({ c, setC, onBack }) {
                 {(DOMAIN_CARDS[domain] || []).map(card => {
                   const key = `${domain}::${card.name}`;
                   const isSelected = c.selectedCards.includes(key);
-                  const isDisabled = !isSelected && !canPickFreely;
+                  const isDisabled = isConfirmed || (!isSelected && isFull);
                   const domColor = DOMAIN_COLORS[domain] || P.accent;
                   return (
                     <div key={card.name}
-                      onClick={() => canPickFreely && toggleCard(domain, card.name)}
+                      onClick={() => { if (isSelected && canRemove) toggleCard(domain, card.name); else if (!isSelected && canAdd) toggleCard(domain, card.name); }}
                       style={{ marginBottom: 10, borderRadius: 12, padding: 14,
                         border: `2px solid ${isSelected ? domColor : P.border}`,
                         background: isSelected ? domColor + "18" : P.card,
                         opacity: isDisabled ? 0.5 : 1,
-                        cursor: canPickFreely ? "pointer" : "default",
+                        cursor: isDisabled ? "default" : "pointer",
                         boxShadow: isSelected ? `0 0 16px ${domColor}33` : "none",
                         transition: "all .2s" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>

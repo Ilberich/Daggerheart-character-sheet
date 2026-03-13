@@ -1,0 +1,21 @@
+# Netlify cache headers
+# Prevents browsers from HTTP-caching the service worker and unhashed app files,
+# so updates are picked up automatically without players clearing their cache.
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache
+
+/app.jsx
+  Cache-Control: no-cache
+
+/styles.css
+  Cache-Control: no-cache
+
+/components/*.jsx
+  Cache-Control: no-cache
+
+/data/*.js
+  Cache-Control: no-cache

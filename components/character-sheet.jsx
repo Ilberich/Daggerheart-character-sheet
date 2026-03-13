@@ -197,6 +197,8 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   if (c.className === "Guardian" && c.subclass === "Vengeance")     stressBonus += 1; // At Ease
   // Threshold bonuses
   let thresholdBonus = 0;
+  // Proficiency bonus (needed for Galapa Shell feature and Guardian/Stalwart subclass)
+  const prof = c.level <= 1 ? 1 : c.level <= 4 ? 2 : c.level <= 7 ? 3 : 4;
   if (hasAncestryFeature(c, "Galapa", 0)) thresholdBonus += prof; // Shell: +Prof to both thresholds
   // Guardian/Stalwart subclass bonuses (based on level tiers)
   if (c.className === "Guardian" && c.subclass === "Stalwart") {
@@ -230,7 +232,6 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const maxHp     = (cls ? cls.hp : 6) + hpBonus;
   const maxStress = 6 + stressBonus;
   const baseEv = cls ? cls.evasion : 10;
-  const prof = c.level <= 1 ? 1 : c.level <= 4 ? 2 : c.level <= 7 ? 3 : 4;
 
   // ── Damage thresholds ────────────────────────────────────────────────
   const bbTier = c.level <= 4 ? 0 : c.level <= 7 ? 1 : c.level <= 10 ? 2 : 3;

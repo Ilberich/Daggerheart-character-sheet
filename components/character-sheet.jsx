@@ -852,6 +852,397 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{c.armorSlots.slice(0, aS).map((f, i) => <Pip key={i} filled={f} color={P.accent} onClick={() => tog("armorSlots", i)} size={24} />)}</div>
           </Card>}
 
+          {/* ── CLASS RESOURCES ─────────────────────────────── */}
+          {c.className && c.subclass && (() => {
+            // Reusable helpers
+            const CooldownBtn = ({ label, used, onToggle, recharge }) => (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: used ? P.textMuted : P.text }}>{label}</div>
+                  {recharge && <div style={{ fontSize: 10, color: P.textMuted }}>{recharge}</div>}
+                </div>
+                <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${used ? P.border : P.accent}`, background: used ? P.surface : P.accent + "22", color: used ? P.textMuted : P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  {used ? "✓ Used" : "Available"}
+                </button>
+              </div>
+            );
+            const ActiveToggle = ({ label, active, onToggle, activeColor }) => {
+              const col = activeColor || P.accent;
+              return (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: active ? col : P.text }}>{label}</div>
+                  <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${active ? col : P.border}`, background: active ? col + "22" : "transparent", color: active ? col : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    {active ? "Active" : "Inactive"}
+                  </button>
+                </div>
+              );
+            };
+            const Counter = ({ label, value, onInc, onDec, min = 0, max = 99, note }) => (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>{label}</div>
+                  {note && <div style={{ fontSize: 10, color: P.textMuted }}>{note}</div>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={onDec} disabled={value <= min} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 16, cursor: value > min ? "pointer" : "default", fontFamily: "inherit", opacity: value <= min ? 0.4 : 1 }}>−</button>
+                  <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 24, textAlign: "center" }}>{value}</span>
+                  <button onClick={onInc} disabled={value >= max} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 16, cursor: value < max ? "pointer" : "default", fontFamily: "inherit", opacity: value >= max ? 0.4 : 1 }}>+</button>
+                </div>
+              </div>
+            );
+
+            const resources = [];
+
+            // ── BARD ──────────────────────────────────────────
+            if (c.className === "Bard") {
+              resources.push(
+                <CooldownBtn key="rally" label="Rally" used={c.rallyUsed || false} onToggle={() => u("rallyUsed", !(c.rallyUsed || false))} recharge="Once per session — give party Rally Dice" />
+              );
+              if (c.subclass === "Troubadour") {
+                resources.push(
+                  <CooldownBtn key="song1" label="Relaxing Song" used={c.troubadourSong1Used || false} onToggle={() => u("troubadourSong1Used", !(c.troubadourSong1Used || false))} recharge="Long rest" />,
+                  <CooldownBtn key="song2" label="Epic Song" used={c.troubadourSong2Used || false} onToggle={() => u("troubadourSong2Used", !(c.troubadourSong2Used || false))} recharge="Long rest" />,
+                  <CooldownBtn key="song3" label="Heartbreaking Song" used={c.troubadourSong3Used || false} onToggle={() => u("troubadourSong3Used", !(c.troubadourSong3Used || false))} recharge="Long rest" />
+                );
+              }
+              if (c.subclass === "Wordsmith") {
+                resources.push(
+                  <CooldownBtn key="speech" label="Rousing Speech" used={c.wordsmithSpeechUsed || false} onToggle={() => u("wordsmithSpeechUsed", !(c.wordsmithSpeechUsed || false))} recharge="Long rest" />
+                );
+              }
+            }
+
+            // ── DRUID ─────────────────────────────────────────
+            if (c.className === "Druid") {
+              resources.push(
+                <ActiveToggle key="beastform" label="Beastform" active={c.beastformActive || false} onToggle={() => u("beastformActive", !(c.beastformActive || false))} activeColor="#22c55e" />
+              );
+              if (c.subclass === "Warden of Renewal") {
+                resources.push(
+                  <CooldownBtn key="clarity" label="Clarity of Nature" used={c.druidClarityUsed || false} onToggle={() => u("druidClarityUsed", !(c.druidClarityUsed || false))} recharge="Long rest" />,
+                  <CooldownBtn key="wardens" label="Warden's Protection" used={c.druidWardensProtectionUsed || false} onToggle={() => u("druidWardensProtectionUsed", !(c.druidWardensProtectionUsed || false))} recharge="Long rest" />
+                );
+              }
+            }
+
+            // ── GUARDIAN ──────────────────────────────────────
+            if (c.className === "Guardian") {
+              const dieMax = c.level >= 5 ? 6 : 4;
+              const dieVal = c.unstoppableDieValue || 1;
+              resources.push(
+                <div key="unstoppable" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: (c.unstoppableActive || false) ? P.fear : P.text }}>Unstoppable {(c.unstoppableActive || false) ? `(d${dieMax}, value: ${dieVal})` : ""}</div>
+                      <div style={{ fontSize: 10, color: P.textMuted }}>Once per long rest</div>
+                    </div>
+                    {!(c.unstoppableUsed || false) && !(c.unstoppableActive || false) && (
+                      <button onClick={() => { u("unstoppableActive", true); u("unstoppableDieValue", 1); u("unstoppableUsed", true); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${P.fear}`, background: P.fear + "22", color: P.fear, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Activate</button>
+                    )}
+                    {(c.unstoppableUsed || false) && !(c.unstoppableActive || false) && (
+                      <span style={{ fontSize: 11, color: P.textMuted, fontWeight: 700 }}>✓ Used</span>
+                    )}
+                    {(c.unstoppableActive || false) && (
+                      <button onClick={() => u("unstoppableActive", false)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>End</button>
+                    )}
+                  </div>
+                  {(c.unstoppableActive || false) && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 11, color: P.textMuted }}>Die value:</span>
+                      <button onClick={() => u("unstoppableDieValue", Math.max(1, dieVal - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
+                      <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.fear, minWidth: 24, textAlign: "center" }}>{dieVal}</span>
+                      <button onClick={() => { if (dieVal < dieMax) u("unstoppableDieValue", dieVal + 1); else u("unstoppableActive", false); }} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>{dieVal < dieMax ? "+" : "⚡"}</button>
+                      <span style={{ fontSize: 10, color: P.textMuted }}>max {dieMax} (⚡ = auto-end)</span>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // ── RANGER ────────────────────────────────────────
+            if (c.className === "Ranger") {
+              resources.push(
+                <div key="focus" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: (c.rangerFocusActive || false) ? 6 : 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: (c.rangerFocusActive || false) ? "#84cc16" : P.text }}>Ranger's Focus</div>
+                    <button onClick={() => { u("rangerFocusActive", !(c.rangerFocusActive || false)); if (c.rangerFocusActive) u("rangerFocusTarget", ""); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${(c.rangerFocusActive || false) ? "#84cc16" : P.border}`, background: (c.rangerFocusActive || false) ? "#84cc1622" : "transparent", color: (c.rangerFocusActive || false) ? "#84cc16" : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      {(c.rangerFocusActive || false) ? "Active" : "Inactive"}
+                    </button>
+                  </div>
+                  {(c.rangerFocusActive || false) && (
+                    <Inp value={c.rangerFocusTarget || ""} onChange={v => u("rangerFocusTarget", v)} placeholder="Target name…" style={{ marginTop: 4 }} />
+                  )}
+                </div>
+              );
+            }
+
+            // ── ROGUE ─────────────────────────────────────────
+            if (c.className === "Rogue") {
+              resources.push(
+                <ActiveToggle key="cloaked" label="Cloaked" active={c.cloaked || false} onToggle={() => u("cloaked", !(c.cloaked || false))} activeColor="#a855f7" />
+              );
+            }
+
+            // ── SERAPH ────────────────────────────────────────
+            if (c.className === "Seraph") {
+              const spellcastTrait = sub?.spellcast || "Strength";
+              const traitVal = Math.max(1, c.traits[spellcastTrait] || 0);
+              const dice = c.prayerDice || [];
+              resources.push(
+                <div key="prayer" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Prayer Dice</div>
+                      <div style={{ fontSize: 10, color: P.textMuted }}>Rolled each session ({spellcastTrait} = {traitVal} dice)</div>
+                    </div>
+                    <button onClick={() => { const rolled = Array.from({ length: traitVal }, () => Math.floor(Math.random() * 4) + 1); u("prayerDice", rolled); }} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Roll d4s</button>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {dice.length === 0 && <span style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>No dice — tap Roll at session start</span>}
+                    {dice.map((val, i) => (
+                      <button key={i} onClick={() => u("prayerDice", dice.filter((_, j) => j !== i))} style={{ width: 36, height: 36, borderRadius: 8, border: `2px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 14, fontWeight: 800, fontFamily: mono, cursor: "pointer" }} title="Tap to spend">{val}</button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            // ── SORCERER ──────────────────────────────────────
+            if (c.className === "Sorcerer") {
+              resources.push(
+                <CooldownBtn key="channel" label="Channel Raw Power" used={c.channelRawPowerUsed || false} onToggle={() => u("channelRawPowerUsed", !(c.channelRawPowerUsed || false))} recharge="Long rest" />
+              );
+              if (c.subclass === "Elemental Origin") {
+                resources.push(
+                  <CooldownBtn key="transcend" label="Transcendence" used={c.transcendenceUsed || false} onToggle={() => u("transcendenceUsed", !(c.transcendenceUsed || false))} recharge="Long rest" />
+                );
+              }
+              if (c.subclass === "Primal Origin") {
+                resources.push(
+                  <ActiveToggle key="charge" label="Arcane Charge" active={c.arcaneChargeActive || false} onToggle={() => u("arcaneChargeActive", !(c.arcaneChargeActive || false))} />
+                );
+              }
+            }
+
+            // ── WARRIOR ───────────────────────────────────────
+            if (c.className === "Warrior") {
+              if (c.subclass === "Call of the Brave") {
+                resources.push(
+                  <CooldownBtn key="ritual" label="Battle Ritual" used={c.battleRitualUsed || false} onToggle={() => u("battleRitualUsed", !(c.battleRitualUsed || false))} recharge="Long rest" />
+                );
+              }
+              if (c.subclass === "Call of the Slayer") {
+                const dice = c.slayerDice || [];
+                resources.push(
+                  <div key="slayer" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Slayer Dice</div>
+                        <div style={{ fontSize: 10, color: P.textMuted }}>Gained on Hope rolls (max = Proficiency)</div>
+                      </div>
+                      <button onClick={() => u("slayerDice", [...dice, Math.floor(Math.random() * 6) + 1])} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ d6</button>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {dice.length === 0 && <span style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>No dice yet</span>}
+                      {dice.map((val, i) => (
+                        <button key={i} onClick={() => u("slayerDice", dice.filter((_, j) => j !== i))} style={{ width: 36, height: 36, borderRadius: 8, border: `2px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 14, fontWeight: 800, fontFamily: mono, cursor: "pointer" }} title="Tap to spend">{val}</button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+            }
+
+            // ── WIZARD ────────────────────────────────────────
+            if (c.className === "Wizard") {
+              const spn = c.strangePatternNumber || 7;
+              resources.push(
+                <div key="pattern" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Strange Pattern Number</div>
+                    <div style={{ fontSize: 10, color: P.textMuted }}>Gain Hope/clear Stress when you roll this on a Duality Die</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => u("strangePatternNumber", Math.max(1, spn - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
+                    <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 28, textAlign: "center" }}>{spn}</span>
+                    <button onClick={() => u("strangePatternNumber", Math.min(12, spn + 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>+</button>
+                  </div>
+                </div>
+              );
+            }
+
+            // ── BLOOD HUNTER ──────────────────────────────────
+            if (c.className === "Blood Hunter") {
+              resources.push(
+                <ActiveToggle key="rite" label="Crimson Rite (weapon enchanted)" active={c.crimsonRiteActive || false} onToggle={() => u("crimsonRiteActive", !(c.crimsonRiteActive || false))} activeColor="#ef4444" />
+              );
+              if (c.subclass === "Order of the Lycan") {
+                resources.push(
+                  <ActiveToggle key="wolf" label="Wolf Form" active={c.wolfFormActive || false} onToggle={() => u("wolfFormActive", !(c.wolfFormActive || false))} activeColor="#f97316" />
+                );
+              }
+              if (c.subclass === "Order of the Mutant") {
+                const mutagens = ["None", "Celerity", "Durable", "Hunter's Senses"];
+                resources.push(
+                  <div key="mutagen" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                    <Lbl style={{ marginBottom: 4 }}>Active Mutagen</Lbl>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {mutagens.map(m => (
+                        <button key={m} onClick={() => u("mutagen", m === "None" ? "" : m)} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${(c.mutagen || "") === (m === "None" ? "" : m) ? P.accent : P.border}`, background: (c.mutagen || "") === (m === "None" ? "" : m) ? P.accent + "22" : P.surface, color: (c.mutagen || "") === (m === "None" ? "" : m) ? P.accent : P.textMuted }}>{m}</button>
+                      ))}
+                    </div>
+                    {c.mutagen && <div style={{ marginTop: 6, fontSize: 11, color: P.textMuted }}>Active: +1 trait of choice, −1 different trait</div>}
+                  </div>
+                );
+              }
+            }
+
+            // ── WITCH ─────────────────────────────────────────
+            if (c.className === "Witch") {
+              resources.push(
+                <div key="hex" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: (c.hexActive || false) ? 6 : 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: (c.hexActive || false) ? "#a855f7" : P.text }}>Hex</div>
+                    <button onClick={() => { u("hexActive", !(c.hexActive || false)); if (c.hexActive) u("hexTarget", ""); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${(c.hexActive || false) ? "#a855f7" : P.border}`, background: (c.hexActive || false) ? "#a855f722" : "transparent", color: (c.hexActive || false) ? "#a855f7" : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      {(c.hexActive || false) ? "Active" : "Inactive"}
+                    </button>
+                  </div>
+                  {(c.hexActive || false) && (
+                    <Inp value={c.hexTarget || ""} onChange={v => u("hexTarget", v)} placeholder="Hexed target…" style={{ marginTop: 4 }} />
+                  )}
+                </div>,
+                <CooldownBtn key="commune" label="Commune" used={c.communeUsed || false} onToggle={() => u("communeUsed", !(c.communeUsed || false))} recharge="Long rest" />
+              );
+              if (c.subclass === "Hedge") {
+                resources.push(
+                  <ActiveToggle key="talisman" label="Tethered Talisman (exists)" active={c.talismanExists || false} onToggle={() => u("talismanExists", !(c.talismanExists || false))} />,
+                  <Counter key="wbw" label="Walk Between Worlds Tokens" value={c.walkBetweenWorldsTokens || 0} onInc={() => u("walkBetweenWorldsTokens", (c.walkBetweenWorldsTokens || 0) + 1)} onDec={() => u("walkBetweenWorldsTokens", Math.max(0, (c.walkBetweenWorldsTokens || 0) - 1))} />,
+                  <Counter key="circle" label="Circle of Power Tokens" value={c.circleOfPowerTokens || 0} onInc={() => u("circleOfPowerTokens", (c.circleOfPowerTokens || 0) + 1)} onDec={() => u("circleOfPowerTokens", Math.max(0, (c.circleOfPowerTokens || 0) - 1))} />
+                );
+              }
+              if (c.subclass === "Moon") {
+                const phaseLabels = { 0: "Not rolled", 1: "New Moon — reduce Minor damage to None (spend Hope)", 2: "Waxing — +2 damage rolls", 3: "Full Moon — +2 damage thresholds", 4: "Waning — +1 Evasion" };
+                resources.push(
+                  <CooldownBtn key="moonbeam" label="Moonbeam" used={c.moonbeamUsed || false} onToggle={() => u("moonbeamUsed", !(c.moonbeamUsed || false))} recharge="Once per session" />,
+                  <div key="phase" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Lunar Phase</div>
+                        <div style={{ fontSize: 10, color: P.textMuted }}>Roll at session start</div>
+                      </div>
+                      <button onClick={() => u("lunarPhase", Math.floor(Math.random() * 4) + 1)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.accent}`, background: P.accent + "22", color: P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Roll d4</button>
+                    </div>
+                    <div style={{ fontSize: 11, color: (c.lunarPhase || 0) > 0 ? P.accent : P.textMuted, background: P.surface, borderRadius: 6, padding: "6px 8px" }}>
+                      {phaseLabels[c.lunarPhase || 0]}
+                    </div>
+                  </div>
+                );
+              }
+            }
+
+            // ── ASSASSIN ──────────────────────────────────────
+            if (c.className === "Assassin") {
+              resources.push(
+                <div key="mfd" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: (c.markedForDeathActive || false) ? 6 : 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: (c.markedForDeathActive || false) ? P.fear : P.text }}>Marked for Death</div>
+                    <button onClick={() => { u("markedForDeathActive", !(c.markedForDeathActive || false)); if (c.markedForDeathActive) u("markedForDeathTarget", ""); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${(c.markedForDeathActive || false) ? P.fear : P.border}`, background: (c.markedForDeathActive || false) ? P.fear + "22" : "transparent", color: (c.markedForDeathActive || false) ? P.fear : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      {(c.markedForDeathActive || false) ? "Active" : "Inactive"}
+                    </button>
+                  </div>
+                  {(c.markedForDeathActive || false) && (
+                    <Inp value={c.markedForDeathTarget || ""} onChange={v => u("markedForDeathTarget", v)} placeholder="Target name…" style={{ marginTop: 4 }} />
+                  )}
+                </div>
+              );
+              if (c.subclass === "Poisoners Guild") {
+                resources.push(
+                  <Counter key="poison" label="Poison Tokens" value={c.poisonTokens || 0} onInc={() => u("poisonTokens", (c.poisonTokens || 0) + 1)} onDec={() => u("poisonTokens", Math.max(0, (c.poisonTokens || 0) - 1))} max={8} note="Cleared on long rest" />
+                );
+              }
+              if (c.subclass === "Executioners Guild") {
+                resources.push(
+                  <CooldownBtn key="firststrike" label="First Strike" used={c.firstStrikeUsed || false} onToggle={() => u("firstStrikeUsed", !(c.firstStrikeUsed || false))} recharge="Per scene (first attack)" />,
+                  <CooldownBtn key="truestrike" label="True Strike" used={c.trueStrikeUsed || false} onToggle={() => u("trueStrikeUsed", !(c.trueStrikeUsed || false))} recharge="Long rest" />
+                );
+              }
+            }
+
+            // ── WARLOCK ───────────────────────────────────────
+            if (c.className === "Warlock") {
+              resources.push(
+                <Counter key="favor" label="Favor" value={c.favor ?? 3} onInc={() => u("favor", (c.favor ?? 3) + 1)} onDec={() => u("favor", Math.max(0, (c.favor ?? 3) - 1))} note="Spend on patron abilities" />,
+                <div key="spheres" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <Lbl style={{ marginBottom: 6 }}>Patron Spheres of Influence</Lbl>
+                  {[["patronSphere1Name", "patronSphere1Value"], ["patronSphere2Name", "patronSphere2Value"]].map(([nk, vk], i) => (
+                    <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                      <Inp value={c[nk] || ""} onChange={v => u(nk, v)} placeholder={`Sphere ${i + 1} name…`} style={{ flex: 1 }} />
+                      <button onClick={() => u(vk, Math.max(2, (c[vk] ?? 2) - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
+                      <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 24, textAlign: "center" }}>+{c[vk] ?? 2}</span>
+                      <button onClick={() => u(vk, (c[vk] ?? 2) + 1)} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>+</button>
+                    </div>
+                  ))}
+                </div>
+              );
+              if (c.subclass === "Pact of the Endless") {
+                resources.push(
+                  <ActiveToggle key="mantle" label="Patron's Mantle" active={c.patronsMantleActive || false} onToggle={() => u("patronsMantleActive", !(c.patronsMantleActive || false))} />
+                );
+              }
+            }
+
+            // ── BRAWLER ───────────────────────────────────────
+            if (c.className === "Brawler") {
+              const dieSizes = ["d4", "d6", "d8", "d10", "d12"];
+              const curDie = c.comboDieSize || "d4";
+              resources.push(
+                <div key="combo" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                  <Lbl style={{ marginBottom: 6 }}>Combo Die</Lbl>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {dieSizes.map(d => (
+                      <button key={d} onClick={() => u("comboDieSize", d)} style={{ flex: 1, padding: "6px 0", borderRadius: 7, border: `2px solid ${curDie === d ? P.accent : P.border}`, background: curDie === d ? P.accent + "22" : P.surface, color: curDie === d ? P.accent : P.textMuted, fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{d}</button>
+                    ))}
+                  </div>
+                </div>,
+                <CooldownBtn key="limbreak" label="Limit Breaker" used={c.limitBreakerUsed || false} onToggle={() => u("limitBreakerUsed", !(c.limitBreakerUsed || false))} recharge="Long rest" />
+              );
+              if (c.subclass === "Martial Artist") {
+                const instinct = Math.max(1, c.traits?.Instinct || 0);
+                resources.push(
+                  <div key="focus" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Focus Tokens</div>
+                        <div style={{ fontSize: 10, color: P.textMuted }}>Roll {instinct}d6 during rest, keep highest</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <button onClick={() => { const dice = Array.from({ length: instinct }, () => Math.floor(Math.random() * 6) + 1); u("focusTokens", Math.max(...dice)); }} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${P.accent}`, background: P.accent + "22", color: P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Roll</button>
+                        <button onClick={() => u("focusTokens", Math.max(0, (c.focusTokens || 0) - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
+                        <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 24, textAlign: "center" }}>{c.focusTokens || 0}</span>
+                        <button onClick={() => u("focusTokens", (c.focusTokens || 0) + 1)} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>+</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (c.subclass === "Juggernaut") {
+                resources.push(
+                  <CooldownBtn key="eyeforeye" label="Eye for an Eye" used={c.eyeForAnEyeUsed || false} onToggle={() => u("eyeForAnEyeUsed", !(c.eyeForAnEyeUsed || false))} recharge="Long rest" />
+                );
+              }
+            }
+
+            if (resources.length === 0) return null;
+            return (
+              <Card>
+                <Lbl>Class Resources</Lbl>
+                <div style={{ marginTop: 4 }}>
+                  {resources}
+                </div>
+              </Card>
+            );
+          })()}
+
           {/* Experiences */}
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -1040,397 +1431,6 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 <Card><Lbl>Hope Feature (3 Hope)</Lbl><div style={{ fontSize: 12, lineHeight: 1.6, color: P.textMuted }}>{cls.hopeFeature}</div></Card>
                 <Card><Lbl>Class Features</Lbl>{cls.classFeatures.map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}</Card>
                 {sub && <Card><Lbl>Subclass — {c.subclass}</Lbl><Feat title="Foundation" text={sub.foundation} /><Feat title="Specialization" text={sub.specialization} /><Feat title="Mastery" text={sub.mastery} /></Card>}
-
-                {/* ── CLASS RESOURCES ─────────────────────────────── */}
-                {c.className && c.subclass && (() => {
-                  // Reusable helpers
-                  const CooldownBtn = ({ label, used, onToggle, recharge }) => (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: used ? P.textMuted : P.text }}>{label}</div>
-                        {recharge && <div style={{ fontSize: 10, color: P.textMuted }}>{recharge}</div>}
-                      </div>
-                      <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${used ? P.border : P.accent}`, background: used ? P.surface : P.accent + "22", color: used ? P.textMuted : P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                        {used ? "✓ Used" : "Available"}
-                      </button>
-                    </div>
-                  );
-                  const ActiveToggle = ({ label, active, onToggle, activeColor }) => {
-                    const col = activeColor || P.accent;
-                    return (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: active ? col : P.text }}>{label}</div>
-                        <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${active ? col : P.border}`, background: active ? col + "22" : "transparent", color: active ? col : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                          {active ? "Active" : "Inactive"}
-                        </button>
-                      </div>
-                    );
-                  };
-                  const Counter = ({ label, value, onInc, onDec, min = 0, max = 99, note }) => (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>{label}</div>
-                        {note && <div style={{ fontSize: 10, color: P.textMuted }}>{note}</div>}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <button onClick={onDec} disabled={value <= min} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 16, cursor: value > min ? "pointer" : "default", fontFamily: "inherit", opacity: value <= min ? 0.4 : 1 }}>−</button>
-                        <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 24, textAlign: "center" }}>{value}</span>
-                        <button onClick={onInc} disabled={value >= max} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 16, cursor: value < max ? "pointer" : "default", fontFamily: "inherit", opacity: value >= max ? 0.4 : 1 }}>+</button>
-                      </div>
-                    </div>
-                  );
-
-                  const resources = [];
-
-                  // ── BARD ──────────────────────────────────────────
-                  if (c.className === "Bard") {
-                    resources.push(
-                      <CooldownBtn key="rally" label="Rally" used={c.rallyUsed || false} onToggle={() => u("rallyUsed", !(c.rallyUsed || false))} recharge="Once per session — give party Rally Dice" />
-                    );
-                    if (c.subclass === "Troubadour") {
-                      resources.push(
-                        <CooldownBtn key="song1" label="Relaxing Song" used={c.troubadourSong1Used || false} onToggle={() => u("troubadourSong1Used", !(c.troubadourSong1Used || false))} recharge="Long rest" />,
-                        <CooldownBtn key="song2" label="Epic Song" used={c.troubadourSong2Used || false} onToggle={() => u("troubadourSong2Used", !(c.troubadourSong2Used || false))} recharge="Long rest" />,
-                        <CooldownBtn key="song3" label="Heartbreaking Song" used={c.troubadourSong3Used || false} onToggle={() => u("troubadourSong3Used", !(c.troubadourSong3Used || false))} recharge="Long rest" />
-                      );
-                    }
-                    if (c.subclass === "Wordsmith") {
-                      resources.push(
-                        <CooldownBtn key="speech" label="Rousing Speech" used={c.wordsmithSpeechUsed || false} onToggle={() => u("wordsmithSpeechUsed", !(c.wordsmithSpeechUsed || false))} recharge="Long rest" />
-                      );
-                    }
-                  }
-
-                  // ── DRUID ─────────────────────────────────────────
-                  if (c.className === "Druid") {
-                    resources.push(
-                      <ActiveToggle key="beastform" label="Beastform" active={c.beastformActive || false} onToggle={() => u("beastformActive", !(c.beastformActive || false))} activeColor="#22c55e" />
-                    );
-                    if (c.subclass === "Warden of Renewal") {
-                      resources.push(
-                        <CooldownBtn key="clarity" label="Clarity of Nature" used={c.druidClarityUsed || false} onToggle={() => u("druidClarityUsed", !(c.druidClarityUsed || false))} recharge="Long rest" />,
-                        <CooldownBtn key="wardens" label="Warden's Protection" used={c.druidWardensProtectionUsed || false} onToggle={() => u("druidWardensProtectionUsed", !(c.druidWardensProtectionUsed || false))} recharge="Long rest" />
-                      );
-                    }
-                  }
-
-                  // ── GUARDIAN ──────────────────────────────────────
-                  if (c.className === "Guardian") {
-                    const dieMax = c.level >= 5 ? 6 : 4;
-                    const dieVal = c.unstoppableDieValue || 1;
-                    resources.push(
-                      <div key="unstoppable" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: (c.unstoppableActive || false) ? P.fear : P.text }}>Unstoppable {(c.unstoppableActive || false) ? `(d${dieMax}, value: ${dieVal})` : ""}</div>
-                            <div style={{ fontSize: 10, color: P.textMuted }}>Once per long rest</div>
-                          </div>
-                          {!(c.unstoppableUsed || false) && !(c.unstoppableActive || false) && (
-                            <button onClick={() => { u("unstoppableActive", true); u("unstoppableDieValue", 1); u("unstoppableUsed", true); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${P.fear}`, background: P.fear + "22", color: P.fear, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Activate</button>
-                          )}
-                          {(c.unstoppableUsed || false) && !(c.unstoppableActive || false) && (
-                            <span style={{ fontSize: 11, color: P.textMuted, fontWeight: 700 }}>✓ Used</span>
-                          )}
-                          {(c.unstoppableActive || false) && (
-                            <button onClick={() => u("unstoppableActive", false)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>End</button>
-                          )}
-                        </div>
-                        {(c.unstoppableActive || false) && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ fontSize: 11, color: P.textMuted }}>Die value:</span>
-                            <button onClick={() => u("unstoppableDieValue", Math.max(1, dieVal - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
-                            <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.fear, minWidth: 24, textAlign: "center" }}>{dieVal}</span>
-                            <button onClick={() => { if (dieVal < dieMax) u("unstoppableDieValue", dieVal + 1); else u("unstoppableActive", false); }} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>{dieVal < dieMax ? "+" : "⚡"}</button>
-                            <span style={{ fontSize: 10, color: P.textMuted }}>max {dieMax} (⚡ = auto-end)</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // ── RANGER ────────────────────────────────────────
-                  if (c.className === "Ranger") {
-                    resources.push(
-                      <div key="focus" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: (c.rangerFocusActive || false) ? 6 : 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: (c.rangerFocusActive || false) ? "#84cc16" : P.text }}>Ranger's Focus</div>
-                          <button onClick={() => { u("rangerFocusActive", !(c.rangerFocusActive || false)); if (c.rangerFocusActive) u("rangerFocusTarget", ""); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${(c.rangerFocusActive || false) ? "#84cc16" : P.border}`, background: (c.rangerFocusActive || false) ? "#84cc1622" : "transparent", color: (c.rangerFocusActive || false) ? "#84cc16" : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                            {(c.rangerFocusActive || false) ? "Active" : "Inactive"}
-                          </button>
-                        </div>
-                        {(c.rangerFocusActive || false) && (
-                          <Inp value={c.rangerFocusTarget || ""} onChange={v => u("rangerFocusTarget", v)} placeholder="Target name…" style={{ marginTop: 4 }} />
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // ── ROGUE ─────────────────────────────────────────
-                  if (c.className === "Rogue") {
-                    resources.push(
-                      <ActiveToggle key="cloaked" label="Cloaked" active={c.cloaked || false} onToggle={() => u("cloaked", !(c.cloaked || false))} activeColor="#a855f7" />
-                    );
-                  }
-
-                  // ── SERAPH ────────────────────────────────────────
-                  if (c.className === "Seraph") {
-                    const spellcastTrait = sub?.spellcast || "Strength";
-                    const traitVal = Math.max(1, c.traits[spellcastTrait] || 0);
-                    const dice = c.prayerDice || [];
-                    resources.push(
-                      <div key="prayer" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Prayer Dice</div>
-                            <div style={{ fontSize: 10, color: P.textMuted }}>Rolled each session ({spellcastTrait} = {traitVal} dice)</div>
-                          </div>
-                          <button onClick={() => { const rolled = Array.from({ length: traitVal }, () => Math.floor(Math.random() * 4) + 1); u("prayerDice", rolled); }} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Roll d4s</button>
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {dice.length === 0 && <span style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>No dice — tap Roll at session start</span>}
-                          {dice.map((val, i) => (
-                            <button key={i} onClick={() => u("prayerDice", dice.filter((_, j) => j !== i))} style={{ width: 36, height: 36, borderRadius: 8, border: `2px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 14, fontWeight: 800, fontFamily: mono, cursor: "pointer" }} title="Tap to spend">{val}</button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // ── SORCERER ──────────────────────────────────────
-                  if (c.className === "Sorcerer") {
-                    resources.push(
-                      <CooldownBtn key="channel" label="Channel Raw Power" used={c.channelRawPowerUsed || false} onToggle={() => u("channelRawPowerUsed", !(c.channelRawPowerUsed || false))} recharge="Long rest" />
-                    );
-                    if (c.subclass === "Elemental Origin") {
-                      resources.push(
-                        <CooldownBtn key="transcend" label="Transcendence" used={c.transcendenceUsed || false} onToggle={() => u("transcendenceUsed", !(c.transcendenceUsed || false))} recharge="Long rest" />
-                      );
-                    }
-                    if (c.subclass === "Primal Origin") {
-                      resources.push(
-                        <ActiveToggle key="charge" label="Arcane Charge" active={c.arcaneChargeActive || false} onToggle={() => u("arcaneChargeActive", !(c.arcaneChargeActive || false))} />
-                      );
-                    }
-                  }
-
-                  // ── WARRIOR ───────────────────────────────────────
-                  if (c.className === "Warrior") {
-                    if (c.subclass === "Call of the Brave") {
-                      resources.push(
-                        <CooldownBtn key="ritual" label="Battle Ritual" used={c.battleRitualUsed || false} onToggle={() => u("battleRitualUsed", !(c.battleRitualUsed || false))} recharge="Long rest" />
-                      );
-                    }
-                    if (c.subclass === "Call of the Slayer") {
-                      const dice = c.slayerDice || [];
-                      resources.push(
-                        <div key="slayer" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                            <div>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Slayer Dice</div>
-                              <div style={{ fontSize: 10, color: P.textMuted }}>Gained on Hope rolls (max = Proficiency)</div>
-                            </div>
-                            <button onClick={() => u("slayerDice", [...dice, Math.floor(Math.random() * 6) + 1])} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ d6</button>
-                          </div>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                            {dice.length === 0 && <span style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>No dice yet</span>}
-                            {dice.map((val, i) => (
-                              <button key={i} onClick={() => u("slayerDice", dice.filter((_, j) => j !== i))} style={{ width: 36, height: 36, borderRadius: 8, border: `2px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 14, fontWeight: 800, fontFamily: mono, cursor: "pointer" }} title="Tap to spend">{val}</button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    }
-                  }
-
-                  // ── WIZARD ────────────────────────────────────────
-                  if (c.className === "Wizard") {
-                    const spn = c.strangePatternNumber || 7;
-                    resources.push(
-                      <div key="pattern" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Strange Pattern Number</div>
-                          <div style={{ fontSize: 10, color: P.textMuted }}>Gain Hope/clear Stress when you roll this on a Duality Die</div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <button onClick={() => u("strangePatternNumber", Math.max(1, spn - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
-                          <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 28, textAlign: "center" }}>{spn}</span>
-                          <button onClick={() => u("strangePatternNumber", Math.min(12, spn + 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>+</button>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // ── BLOOD HUNTER ──────────────────────────────────
-                  if (c.className === "Blood Hunter") {
-                    resources.push(
-                      <ActiveToggle key="rite" label="Crimson Rite (weapon enchanted)" active={c.crimsonRiteActive || false} onToggle={() => u("crimsonRiteActive", !(c.crimsonRiteActive || false))} activeColor="#ef4444" />
-                    );
-                    if (c.subclass === "Order of the Lycan") {
-                      resources.push(
-                        <ActiveToggle key="wolf" label="Wolf Form" active={c.wolfFormActive || false} onToggle={() => u("wolfFormActive", !(c.wolfFormActive || false))} activeColor="#f97316" />
-                      );
-                    }
-                    if (c.subclass === "Order of the Mutant") {
-                      const mutagens = ["None", "Celerity", "Durable", "Hunter's Senses"];
-                      resources.push(
-                        <div key="mutagen" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                          <Lbl style={{ marginBottom: 4 }}>Active Mutagen</Lbl>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                            {mutagens.map(m => (
-                              <button key={m} onClick={() => u("mutagen", m === "None" ? "" : m)} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${(c.mutagen || "") === (m === "None" ? "" : m) ? P.accent : P.border}`, background: (c.mutagen || "") === (m === "None" ? "" : m) ? P.accent + "22" : P.surface, color: (c.mutagen || "") === (m === "None" ? "" : m) ? P.accent : P.textMuted }}>{m}</button>
-                            ))}
-                          </div>
-                          {c.mutagen && <div style={{ marginTop: 6, fontSize: 11, color: P.textMuted }}>Active: +1 trait of choice, −1 different trait</div>}
-                        </div>
-                      );
-                    }
-                  }
-
-                  // ── WITCH ─────────────────────────────────────────
-                  if (c.className === "Witch") {
-                    resources.push(
-                      <div key="hex" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: (c.hexActive || false) ? 6 : 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: (c.hexActive || false) ? "#a855f7" : P.text }}>Hex</div>
-                          <button onClick={() => { u("hexActive", !(c.hexActive || false)); if (c.hexActive) u("hexTarget", ""); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${(c.hexActive || false) ? "#a855f7" : P.border}`, background: (c.hexActive || false) ? "#a855f722" : "transparent", color: (c.hexActive || false) ? "#a855f7" : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                            {(c.hexActive || false) ? "Active" : "Inactive"}
-                          </button>
-                        </div>
-                        {(c.hexActive || false) && (
-                          <Inp value={c.hexTarget || ""} onChange={v => u("hexTarget", v)} placeholder="Hexed target…" style={{ marginTop: 4 }} />
-                        )}
-                      </div>,
-                      <CooldownBtn key="commune" label="Commune" used={c.communeUsed || false} onToggle={() => u("communeUsed", !(c.communeUsed || false))} recharge="Long rest" />
-                    );
-                    if (c.subclass === "Hedge") {
-                      resources.push(
-                        <ActiveToggle key="talisman" label="Tethered Talisman (exists)" active={c.talismanExists || false} onToggle={() => u("talismanExists", !(c.talismanExists || false))} />,
-                        <Counter key="wbw" label="Walk Between Worlds Tokens" value={c.walkBetweenWorldsTokens || 0} onInc={() => u("walkBetweenWorldsTokens", (c.walkBetweenWorldsTokens || 0) + 1)} onDec={() => u("walkBetweenWorldsTokens", Math.max(0, (c.walkBetweenWorldsTokens || 0) - 1))} />,
-                        <Counter key="circle" label="Circle of Power Tokens" value={c.circleOfPowerTokens || 0} onInc={() => u("circleOfPowerTokens", (c.circleOfPowerTokens || 0) + 1)} onDec={() => u("circleOfPowerTokens", Math.max(0, (c.circleOfPowerTokens || 0) - 1))} />
-                      );
-                    }
-                    if (c.subclass === "Moon") {
-                      const phaseLabels = { 0: "Not rolled", 1: "New Moon — reduce Minor damage to None (spend Hope)", 2: "Waxing — +2 damage rolls", 3: "Full Moon — +2 damage thresholds", 4: "Waning — +1 Evasion" };
-                      resources.push(
-                        <CooldownBtn key="moonbeam" label="Moonbeam" used={c.moonbeamUsed || false} onToggle={() => u("moonbeamUsed", !(c.moonbeamUsed || false))} recharge="Once per session" />,
-                        <div key="phase" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                            <div>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Lunar Phase</div>
-                              <div style={{ fontSize: 10, color: P.textMuted }}>Roll at session start</div>
-                            </div>
-                            <button onClick={() => u("lunarPhase", Math.floor(Math.random() * 4) + 1)} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.accent}`, background: P.accent + "22", color: P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Roll d4</button>
-                          </div>
-                          <div style={{ fontSize: 11, color: (c.lunarPhase || 0) > 0 ? P.accent : P.textMuted, background: P.surface, borderRadius: 6, padding: "6px 8px" }}>
-                            {phaseLabels[c.lunarPhase || 0]}
-                          </div>
-                        </div>
-                      );
-                    }
-                  }
-
-                  // ── ASSASSIN ──────────────────────────────────────
-                  if (c.className === "Assassin") {
-                    resources.push(
-                      <div key="mfd" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: (c.markedForDeathActive || false) ? 6 : 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: (c.markedForDeathActive || false) ? P.fear : P.text }}>Marked for Death</div>
-                          <button onClick={() => { u("markedForDeathActive", !(c.markedForDeathActive || false)); if (c.markedForDeathActive) u("markedForDeathTarget", ""); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${(c.markedForDeathActive || false) ? P.fear : P.border}`, background: (c.markedForDeathActive || false) ? P.fear + "22" : "transparent", color: (c.markedForDeathActive || false) ? P.fear : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                            {(c.markedForDeathActive || false) ? "Active" : "Inactive"}
-                          </button>
-                        </div>
-                        {(c.markedForDeathActive || false) && (
-                          <Inp value={c.markedForDeathTarget || ""} onChange={v => u("markedForDeathTarget", v)} placeholder="Target name…" style={{ marginTop: 4 }} />
-                        )}
-                      </div>
-                    );
-                    if (c.subclass === "Poisoners Guild") {
-                      resources.push(
-                        <Counter key="poison" label="Poison Tokens" value={c.poisonTokens || 0} onInc={() => u("poisonTokens", (c.poisonTokens || 0) + 1)} onDec={() => u("poisonTokens", Math.max(0, (c.poisonTokens || 0) - 1))} max={8} note="Cleared on long rest" />
-                      );
-                    }
-                    if (c.subclass === "Executioners Guild") {
-                      resources.push(
-                        <CooldownBtn key="firststrike" label="First Strike" used={c.firstStrikeUsed || false} onToggle={() => u("firstStrikeUsed", !(c.firstStrikeUsed || false))} recharge="Per scene (first attack)" />,
-                        <CooldownBtn key="truestrike" label="True Strike" used={c.trueStrikeUsed || false} onToggle={() => u("trueStrikeUsed", !(c.trueStrikeUsed || false))} recharge="Long rest" />
-                      );
-                    }
-                  }
-
-                  // ── WARLOCK ───────────────────────────────────────
-                  if (c.className === "Warlock") {
-                    resources.push(
-                      <Counter key="favor" label="Favor" value={c.favor ?? 3} onInc={() => u("favor", (c.favor ?? 3) + 1)} onDec={() => u("favor", Math.max(0, (c.favor ?? 3) - 1))} note="Spend on patron abilities" />,
-                      <div key="spheres" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <Lbl style={{ marginBottom: 6 }}>Patron Spheres of Influence</Lbl>
-                        {[["patronSphere1Name", "patronSphere1Value"], ["patronSphere2Name", "patronSphere2Value"]].map(([nk, vk], i) => (
-                          <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
-                            <Inp value={c[nk] || ""} onChange={v => u(nk, v)} placeholder={`Sphere ${i + 1} name…`} style={{ flex: 1 }} />
-                            <button onClick={() => u(vk, Math.max(2, (c[vk] ?? 2) - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
-                            <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 24, textAlign: "center" }}>+{c[vk] ?? 2}</span>
-                            <button onClick={() => u(vk, (c[vk] ?? 2) + 1)} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>+</button>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                    if (c.subclass === "Pact of the Endless") {
-                      resources.push(
-                        <ActiveToggle key="mantle" label="Patron's Mantle" active={c.patronsMantleActive || false} onToggle={() => u("patronsMantleActive", !(c.patronsMantleActive || false))} />
-                      );
-                    }
-                  }
-
-                  // ── BRAWLER ───────────────────────────────────────
-                  if (c.className === "Brawler") {
-                    const dieSizes = ["d4", "d6", "d8", "d10", "d12"];
-                    const curDie = c.comboDieSize || "d4";
-                    resources.push(
-                      <div key="combo" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                        <Lbl style={{ marginBottom: 6 }}>Combo Die</Lbl>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          {dieSizes.map(d => (
-                            <button key={d} onClick={() => u("comboDieSize", d)} style={{ flex: 1, padding: "6px 0", borderRadius: 7, border: `2px solid ${curDie === d ? P.accent : P.border}`, background: curDie === d ? P.accent + "22" : P.surface, color: curDie === d ? P.accent : P.textMuted, fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{d}</button>
-                          ))}
-                        </div>
-                      </div>,
-                      <CooldownBtn key="limbreak" label="Limit Breaker" used={c.limitBreakerUsed || false} onToggle={() => u("limitBreakerUsed", !(c.limitBreakerUsed || false))} recharge="Long rest" />
-                    );
-                    if (c.subclass === "Martial Artist") {
-                      const instinct = Math.max(1, c.traits?.Instinct || 0);
-                      resources.push(
-                        <div key="focus" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Focus Tokens</div>
-                              <div style={{ fontSize: 10, color: P.textMuted }}>Roll {instinct}d6 during rest, keep highest</div>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <button onClick={() => { const dice = Array.from({ length: instinct }, () => Math.floor(Math.random() * 6) + 1); u("focusTokens", Math.max(...dice)); }} style={{ padding: "4px 8px", borderRadius: 6, border: `1px solid ${P.accent}`, background: P.accent + "22", color: P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Roll</button>
-                              <button onClick={() => u("focusTokens", Math.max(0, (c.focusTokens || 0) - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
-                              <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 24, textAlign: "center" }}>{c.focusTokens || 0}</span>
-                              <button onClick={() => u("focusTokens", (c.focusTokens || 0) + 1)} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>+</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    if (c.subclass === "Juggernaut") {
-                      resources.push(
-                        <CooldownBtn key="eyeforeye" label="Eye for an Eye" used={c.eyeForAnEyeUsed || false} onToggle={() => u("eyeForAnEyeUsed", !(c.eyeForAnEyeUsed || false))} recharge="Long rest" />
-                      );
-                    }
-                  }
-
-                  if (resources.length === 0) return null;
-                  return (
-                    <Card>
-                      <Lbl>Class Resources</Lbl>
-                      <div style={{ marginTop: 4 }}>
-                        {resources}
-                      </div>
-                    </Card>
-                  );
-                })()}
 
                 <Card><Lbl>Starting Items</Lbl><div style={{ fontSize: 12, color: P.textMuted }}>{cls.items}</div></Card>
           </>}

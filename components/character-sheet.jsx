@@ -267,6 +267,35 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   }
   const fEv = baseEv + eM + evasionBonus;
 
+  // ── Resource helpers (used by Quick Actions and Domain Cards) ────────
+  const parseCost = (text) => {
+    if (!text) return null;
+    const h3 = text.match(/[Ss]pend (\d+) Hope/); if (h3) return { type: "hope", amount: parseInt(h3[1]) };
+    const h1 = text.match(/[Ss]pend a Hope/);      if (h1) return { type: "hope", amount: 1 };
+    const sN = text.match(/[Mm]ark (\d+) Stress/); if (sN) return { type: "stress", amount: parseInt(sN[1]) };
+    const s1 = text.match(/[Mm]ark(?: a)? Stress/);if (s1) return { type: "stress", amount: 1 };
+    return null;
+  };
+  const currentHope   = c.hope.filter(Boolean).length;
+  const currentStress = c.stress.slice(0, maxStress).filter(Boolean).length;
+  const freeStress    = maxStress - currentStress;
+  const canAfford = (cost) => {
+    if (!cost) return true;
+    return cost.type === "hope" ? currentHope >= cost.amount : freeStress >= cost.amount;
+  };
+  const spendCost = (cost) => {
+    if (!cost) return;
+    if (cost.type === "hope") {
+      const next = [...c.hope]; let n = cost.amount;
+      for (let i = next.length - 1; i >= 0 && n > 0; i--) { if (next[i]) { next[i] = false; n--; } }
+      u("hope", next);
+    } else {
+      const next = [...c.stress]; let n = cost.amount;
+      for (let i = 0; i < maxStress && n > 0; i++) { if (!next[i]) { next[i] = true; n--; } }
+      u("stress", next);
+    }
+  };
+
   // Build quick actions (pw/sw already declared above; use effTraits for accurate modifiers)
   const actions = [];
   if (pw) {
@@ -294,10 +323,33 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
       // Filter out purely passive/descriptive features (those without game mechanics)
       const mechFeatures = ["Kick", "Elemental Breath", "Luckbender", "Wings", "Charge", "Fungril Network", "Death Connection", "Retract", "Reach", "Danger Sense", "Internal Compass", "Adaptability", "Dread Visage", "Retracting Claws", "Tusks", "Long Tongue"];
       if (mechFeatures.includes(abilityName)) {
-        actions.push({ label: abilityName, detail: "", sub: abilityDesc, type: "ability" });
+        const abilityCost = parseCost(abilityDesc);
+        const costLabel = abilityCost
+          ? (abilityCost.type === "hope" ? `${abilityCost.amount} ✦Hope` : `${abilityCost.amount} Stress`)
+          : "";
+        actions.push({ label: abilityName, detail: costLabel, sub: abilityDesc, type: "ability", cost: abilityCost });
       }
     }
   });
+  // Class hope feature (costs 3 Hope)
+  if (cls && cls.hopeFeature) {
+    const ci = cls.hopeFeature.indexOf(":");
+    const hfName = ci > -1 ? cls.hopeFeature.substring(0, ci).trim() : "Hope Feature";
+    const hfDesc = ci > -1 ? cls.hopeFeature.substring(ci + 1).trim() : cls.hopeFeature;
+    actions.push({ label: hfName, detail: "3 ✦Hope", sub: hfDesc, type: "hopeFeature", cost: { type: "hope", amount: 3 } });
+  }
+  // Community active ability (only if it has a parseable Hope/Stress cost)
+  if (c.community && COMMUNITIES[c.community]) {
+    const commText = COMMUNITIES[c.community];
+    const commCost = parseCost(commText);
+    if (commCost) {
+      const ci = commText.indexOf(":");
+      const cName = ci > -1 ? commText.substring(0, ci).trim() : c.community;
+      const cDesc = ci > -1 ? commText.substring(ci + 1).trim() : commText;
+      const costLabel = commCost.type === "hope" ? `${commCost.amount} ✦Hope` : `${commCost.amount} Stress`;
+      actions.push({ label: cName, detail: costLabel, sub: cDesc, type: "community", cost: commCost });
+    }
+  }
   // Common trait actions (use effective traits to reflect equipment penalties)
   TRAIT_KEYS.forEach(t => {
     const v = effTraits[t]; const d = v >= 0 ? `+${v}` : `${v}`;
@@ -1303,17 +1355,25 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           <Card>
             <Lbl>Quick Actions</Lbl>
             {actions.length === 0 && <div style={{ fontSize: 12, color: P.textMuted, fontStyle: "italic" }}>Select weapons and class to see actions</div>}
-            {actions.filter(a => a.type !== "trait").map((a, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: P.surface, borderRadius: 8, border: `1px solid ${P.border}`, marginBottom: 6 }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: a.type === "spell" ? P.hope : P.text }}>
-                    {a.type === "primary" ? "⚔ " : a.type === "secondary" ? "🛡 " : a.type === "ability" ? "🌟 " : "✦ "}{a.label}
+            {actions.filter(a => a.type !== "trait").map((a, i) => {
+              const affordable = canAfford(a.cost);
+              const costColor = a.cost?.type === "hope" ? P.hope : P.stress;
+              return (
+                <div key={i}
+                  onClick={() => { if (a.cost && affordable) spendCost(a.cost); }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 10px", background: P.surface, borderRadius: 8, border: `1px solid ${P.border}`, marginBottom: 6, opacity: a.cost && !affordable ? 0.4 : 1, cursor: a.cost ? (affordable ? "pointer" : "not-allowed") : "default" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: a.type === "spell" ? P.hope : a.type === "hopeFeature" ? P.hope : a.type === "community" ? P.accent : P.text }}>
+                      {a.type === "primary" ? "⚔ " : a.type === "secondary" ? "🛡 " : a.type === "spell" ? "✦ " : "✦ "}{a.label}
+                    </div>
+                    {a.sub && <div style={{ fontSize: 10, color: P.textMuted, marginTop: 2, whiteSpace: "pre-line", lineHeight: 1.45 }}>{a.sub}</div>}
                   </div>
-                  {a.sub && <div style={{ fontSize: 10, color: P.accent, marginTop: 2 }}>{a.sub}</div>}
+                  {a.detail && (
+                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: a.cost ? costColor : P.textMuted, whiteSpace: "nowrap", marginLeft: 8, flexShrink: 0 }}>{a.detail}</span>
+                  )}
                 </div>
-                <div style={{ fontSize: 12, color: P.textMuted, fontFamily: mono, textAlign: "right", whiteSpace: "nowrap" }}>{a.detail}</div>
-              </div>
-            ))}
+              );
+            })}
             <div style={{ marginTop: 8 }}><Lbl>Trait Rolls</Lbl></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
               {actions.filter(a => a.type === "trait").map((a, i) => (
@@ -1334,8 +1394,12 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               if (!card) return null;
               const domColor = DOMAIN_COLORS[domain] || P.accent;
               const typeColor = { Ability: P.accent, Spell: "#a855f7", Grimoire: "#3b82f6" };
+              const dcCost = card.recallCost === 0 ? { type: "hope", amount: 1 } : { type: "stress", amount: card.recallCost };
+              const dcAffordable = canAfford(dcCost);
               return (
-                <div key={key} style={{ marginBottom: 8, borderRadius: 10, border: `1px solid ${domColor}55`, background: domColor + "0d", overflow: "hidden" }}>
+                <div key={key}
+                  onClick={() => { if (dcAffordable) spendCost(dcCost); }}
+                  style={{ marginBottom: 8, borderRadius: 10, border: `1px solid ${domColor}55`, background: domColor + "0d", overflow: "hidden", opacity: dcAffordable ? 1 : 0.45, cursor: dcAffordable ? "pointer" : "not-allowed" }}>
                   <div style={{ padding: "8px 12px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1343,7 +1407,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                         <span style={{ fontSize: 14, fontWeight: 800, color: domColor }}>{card.name}</span>
                         <span style={{ fontSize: 9, fontWeight: 700, color: typeColor[card.type] || P.textMuted, textTransform: "uppercase", letterSpacing: 0.8 }}>{card.type}</span>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: card.recallCost === 0 ? P.hp : P.stress }}>⚡{card.recallCost}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: card.recallCost === 0 ? P.hope : P.stress }}>⚡{card.recallCost === 0 ? "1 Hope" : `${card.recallCost} Stress`}</span>
                     </div>
                     <div style={{ fontSize: 11, lineHeight: 1.65, color: P.textMuted, whiteSpace: "pre-line", marginTop: 6, paddingLeft: 16 }}>{card.text}</div>
                   </div>
@@ -1351,6 +1415,79 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               );
             })}
           </Card>}
+
+          {/* Passives — ancestry/community/subclass/class non-active effects */}
+          {(() => {
+            const passives = [];
+            const mechFeatures = ["Kick","Elemental Breath","Luckbender","Wings","Charge","Fungril Network","Death Connection","Retract","Reach","Danger Sense","Internal Compass","Adaptability","Dread Visage","Retracting Claws","Tusks","Long Tongue"];
+
+            // Ancestry passive features (those NOT already in Quick Actions)
+            getActiveAncestryFeatures(c).forEach(feat => {
+              const ci = feat.indexOf(":");
+              if (ci > -1) {
+                const name = feat.substring(0, ci).trim();
+                const desc = feat.substring(ci + 1).trim();
+                if (!mechFeatures.includes(name))
+                  passives.push({ source: c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry, name, desc });
+              }
+            });
+
+            // Community feature (always shown for reference)
+            if (c.community && COMMUNITIES[c.community]) {
+              const ct = COMMUNITIES[c.community];
+              const ci = ct.indexOf(":");
+              passives.push({
+                source: c.community,
+                name: ci > -1 ? ct.substring(0, ci).trim() : c.community,
+                desc: ci > -1 ? ct.substring(ci + 1).trim() : ct
+              });
+            }
+
+            // Subclass features (level-gated)
+            if (sub) {
+              [
+                { text: sub.foundation,     minLevel: 1, tier: "Foundation" },
+                { text: sub.specialization, minLevel: 5, tier: "Specialization" },
+                { text: sub.mastery,        minLevel: 8, tier: "Mastery" },
+              ].forEach(({ text, minLevel, tier }) => {
+                if (!text || c.level < minLevel) return;
+                const ci = text.indexOf(":");
+                passives.push({
+                  source: `${c.subclass} · ${tier}`,
+                  name: ci > -1 ? text.substring(0, ci).trim() : tier,
+                  desc: ci > -1 ? text.substring(ci + 1).trim() : text
+                });
+              });
+            }
+
+            // Class features
+            if (cls) {
+              cls.classFeatures.forEach(feat => {
+                const ci = feat.indexOf(":");
+                passives.push({
+                  source: c.className,
+                  name: ci > -1 ? feat.substring(0, ci).trim() : "Class Feature",
+                  desc: ci > -1 ? feat.substring(ci + 1).trim() : feat
+                });
+              });
+            }
+
+            if (passives.length === 0) return null;
+            return (
+              <Card>
+                <Lbl>Passives</Lbl>
+                {passives.map((p, i) => (
+                  <div key={i} style={{ marginBottom: 8, padding: "8px 10px", background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 3 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: P.text }}>{p.name}</span>
+                      <span style={{ fontSize: 9, fontWeight: 600, color: P.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8, flexShrink: 0 }}>{p.source}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: P.textMuted, lineHeight: 1.55, whiteSpace: "pre-line" }}>{p.desc}</div>
+                  </div>
+                ))}
+              </Card>
+            );
+          })()}
 
           {/* Gold */}
           <Card>

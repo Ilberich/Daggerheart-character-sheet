@@ -1,7 +1,7 @@
 // Daggerheart PWA — Service Worker
 // Caches all app assets on install so the sheet works offline.
 
-const CACHE = 'daggerheart-v2';
+const CACHE = 'daggerheart-v3';
 
 const PRECACHE = [
   '/',
@@ -22,6 +22,9 @@ const PRECACHE = [
   'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js',
 ];
+
+// CDN origins that use cache-first (versioned/immutable URLs)
+const CDN_ORIGINS = ['cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 // Install: cache all critical assets
 self.addEventListener('install', e => {
@@ -45,35 +48,38 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch: cache-first for CDN assets, network-first for the HTML page
+// Fetch handler
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Always go network-first for the HTML page itself (picks up updates)
-  if (url.pathname === '/' || url.pathname === '/index.html') {
+  // CDN resources: cache-first (versioned and immutable)
+  if (CDN_ORIGINS.some(o => url.hostname.includes(o))) {
     e.respondWith(
-      fetch(e.request)
-        .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
           return res;
-        })
-        .catch(() => caches.match(e.request))
+        });
+      })
     );
     return;
   }
 
-  // Cache-first for everything else (CDN scripts, fonts, etc.)
+  // All local app files: network-first so updates deploy automatically.
+  // Falls back to cache for offline use.
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
+    fetch(e.request)
+      .then(res => {
         if (res.ok) {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      });
-    })
+      })
+      .catch(() => caches.match(e.request))
   );
 });

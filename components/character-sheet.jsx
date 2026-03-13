@@ -195,6 +195,15 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   // Subclass bonuses
   if (c.className === "Wizard"   && c.subclass === "School of War") hpBonus     += 1; // Battlemage
   if (c.className === "Guardian" && c.subclass === "Vengeance")     stressBonus += 1; // At Ease
+  // Threshold bonuses
+  let thresholdBonus = 0;
+  if (hasAncestryFeature(c, "Galapa", 0)) thresholdBonus += prof; // Shell: +Prof to both thresholds
+  // Guardian/Stalwart subclass bonuses (based on level tiers)
+  if (c.className === "Guardian" && c.subclass === "Stalwart") {
+    if (c.level >= 1) thresholdBonus += 1;  // Foundation: Unwavering +1
+    if (c.level >= 5) thresholdBonus += 1;  // Specialization: Unrelenting +2 total
+    if (c.level >= 8) thresholdBonus += 1;  // Mastery: Undaunted +3 total
+  }
 
   // ── Gear references (needed early for trait modifiers) ──────────────
   const pw = WEAPONS_PRIMARY.find(x => x.name === c.primaryWeapon);
@@ -226,12 +235,12 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   // ── Damage thresholds ────────────────────────────────────────────────
   const bbTier = c.level <= 4 ? 0 : c.level <= 7 ? 1 : c.level <= 10 ? 2 : 3;
   const BB_THRESHOLDS = [[9,19],[11,24],[13,31],[15,38]];
-  const mT = sA ? parseInt(sA.thresholds.split("/")[0]) + c.level
-           : hasBareBones ? BB_THRESHOLDS[bbTier][0] + c.level
-           : c.level;
-  const sT = sA ? parseInt(sA.thresholds.split("/")[1]) + c.level
-           : hasBareBones ? BB_THRESHOLDS[bbTier][1] + c.level
-           : c.level * 2;
+  const mT = sA ? parseInt(sA.thresholds.split("/")[0]) + c.level + thresholdBonus
+           : hasBareBones ? BB_THRESHOLDS[bbTier][0] + c.level + thresholdBonus
+           : c.level + thresholdBonus;
+  const sT = sA ? parseInt(sA.thresholds.split("/")[1]) + c.level + thresholdBonus
+           : hasBareBones ? BB_THRESHOLDS[bbTier][1] + c.level + thresholdBonus
+           : c.level * 2 + thresholdBonus;
 
   // ── Armor Score — base + shield bonuses ─────────────────────────────
   // Round Shield: +1 Armor Score  |  Tower Shield: +2 Armor Score
@@ -274,6 +283,20 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
     actions.push({ label: "Spellcast", detail: `${sub.spellcast} ${modStr}`, sub: "", type: "spell" });
   }
+  // Ancestry abilities
+  const ancestryFeatures = getActiveAncestryFeatures(c);
+  ancestryFeatures.forEach(feature => {
+    const colonIdx = feature.indexOf(":");
+    if (colonIdx > -1) {
+      const abilityName = feature.substring(0, colonIdx).trim();
+      const abilityDesc = feature.substring(colonIdx + 1).trim();
+      // Filter out purely passive/descriptive features (those without game mechanics)
+      const mechFeatures = ["Kick", "Elemental Breath", "Luckbender", "Wings", "Charge", "Fungril Network", "Death Connection", "Retract", "Reach", "Danger Sense", "Internal Compass", "Adaptability", "Dread Visage", "Retracting Claws", "Tusks", "Long Tongue"];
+      if (mechFeatures.includes(abilityName)) {
+        actions.push({ label: abilityName, detail: "", sub: abilityDesc, type: "ability" });
+      }
+    }
+  });
   // Common trait actions (use effective traits to reflect equipment penalties)
   TRAIT_KEYS.forEach(t => {
     const v = effTraits[t]; const d = v >= 0 ? `+${v}` : `${v}`;
@@ -1283,7 +1306,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: P.surface, borderRadius: 8, border: `1px solid ${P.border}`, marginBottom: 6 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: a.type === "spell" ? P.hope : P.text }}>
-                    {a.type === "primary" ? "⚔ " : a.type === "secondary" ? "🛡 " : "✦ "}{a.label}
+                    {a.type === "primary" ? "⚔ " : a.type === "secondary" ? "🛡 " : a.type === "ability" ? "🌟 " : "✦ "}{a.label}
                   </div>
                   {a.sub && <div style={{ fontSize: 10, color: P.accent, marginTop: 2 }}>{a.sub}</div>}
                 </div>

@@ -1,11 +1,22 @@
 // Daggerheart PWA — Service Worker
 // Caches all app assets on install so the sheet works offline.
 
-const CACHE = 'daggerheart-v1';
+const CACHE = 'daggerheart-v2';
 
 const PRECACHE = [
   '/',
   '/index.html',
+  '/styles.css',
+  '/app.jsx',
+  '/data/classes.js',
+  '/data/config.js',
+  '/data/ancestries.js',
+  '/data/equipment.js',
+  '/data/domain-cards.js',
+  '/data/themes.js',
+  '/components/ui.jsx',
+  '/components/companion-tab.jsx',
+  '/components/character-sheet.jsx',
   'https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',

@@ -1,5 +1,56 @@
 function newChar(id) {
-  return { _id: id, name: "", pronouns: "", level: 1, className: "", subclass: "", ancestry: "", isMixedAncestry: false, ancestrySecondary: "", mixedFeaturePick: "A", mixedAncestryLabel: "", community: "", communityNotes: "", traits: { Agility: 0, Strength: 0, Finesse: 0, Instinct: 0, Presence: 0, Knowledge: 0 }, hp: Array(10).fill(false), stress: Array(7).fill(false), hope: [true, true, false, false, false, false], armorSlots: Array(12).fill(false), primaryWeapon: "", secondaryWeapon: "", armor: "", exp1: "", exp1Val: 2, exp2: "", exp2Val: 2, inventory: "", goldH: 1, goldB: 0, goldC: 0, notes: "", selectedCards: [], companionName: "", companionType: "", companionEvasion: 10, companionStress: Array(3).fill(false), companionDamageDieIdx: 0, companionRange: "Melee", companionAttackDesc: "", companionExp1: "", companionExp1Val: 2, companionExp2: "", companionExp2Val: 2, companionLevelUps: {}, companionLightHope: false, companionComfortUsed: false };
+  return {
+    _id: id, name: "", pronouns: "", level: 1, className: "", subclass: "",
+    ancestry: "", isMixedAncestry: false, ancestrySecondary: "", mixedFeaturePick: "A",
+    mixedAncestryLabel: "", community: "", communityNotes: "",
+    traits: { Agility: 0, Strength: 0, Finesse: 0, Instinct: 0, Presence: 0, Knowledge: 0 },
+    hp: Array(10).fill(false), stress: Array(7).fill(false),
+    hope: [true, true, false, false, false, false], armorSlots: Array(12).fill(false),
+    primaryWeapon: "", secondaryWeapon: "", armor: "",
+    exp1: "", exp1Val: 2, exp2: "", exp2Val: 2,
+    inventory: "", goldH: 1, goldB: 0, goldC: 0, notes: "",
+    selectedCards: [],
+    companionName: "", companionType: "", companionEvasion: 10,
+    companionStress: Array(3).fill(false), companionDamageDieIdx: 0,
+    companionRange: "Melee", companionAttackDesc: "",
+    companionExp1: "", companionExp1Val: 2, companionExp2: "", companionExp2Val: 2,
+    companionLevelUps: {}, companionLightHope: false, companionComfortUsed: false,
+    // ── Class Resources ──────────────────────────────────────
+    // Bard
+    rallyUsed: false,
+    troubadourSong1Used: false, troubadourSong2Used: false, troubadourSong3Used: false,
+    wordsmithSpeechUsed: false,
+    // Druid
+    beastformActive: false, druidClarityUsed: false, druidWardensProtectionUsed: false,
+    // Guardian
+    unstoppableActive: false, unstoppableDieValue: 1, unstoppableUsed: false,
+    // Ranger
+    rangerFocusActive: false, rangerFocusTarget: "",
+    // Rogue
+    cloaked: false,
+    // Seraph
+    prayerDice: [],
+    // Sorcerer
+    channelRawPowerUsed: false, arcaneChargeActive: false, transcendenceUsed: false,
+    // Warrior
+    battleRitualUsed: false, slayerDice: [],
+    // Wizard
+    strangePatternNumber: 7,
+    // Blood Hunter
+    crimsonRiteActive: false, wolfFormActive: false, mutagen: "",
+    // Witch
+    hexActive: false, hexTarget: "", communeUsed: false,
+    talismanExists: false, walkBetweenWorldsTokens: 0, circleOfPowerTokens: 0,
+    moonbeamUsed: false, lunarPhase: 0,
+    // Assassin
+    markedForDeathActive: false, markedForDeathTarget: "", poisonTokens: 0,
+    firstStrikeUsed: false, trueStrikeUsed: false,
+    // Warlock
+    favor: 3, patronSphere1Name: "", patronSphere1Value: 2,
+    patronSphere2Name: "", patronSphere2Value: 2, patronsMantleActive: false,
+    // Brawler
+    comboDieSize: "d4", focusTokens: 0, limitBreakerUsed: false, eyeForAnEyeUsed: false,
+  };
 }
 
 // ── CLASS COLOR MAP ──────────────────────────────────────────

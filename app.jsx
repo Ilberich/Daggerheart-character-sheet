@@ -9,7 +9,7 @@ function newChar(id) {
     primaryWeapon: "", secondaryWeapon: "", armor: "",
     exp1: "", exp1Val: 2, exp2: "", exp2Val: 2,
     inventory: "", goldH: 1, goldB: 0, goldC: 0, notes: "",
-    selectedCards: [],
+    selectedCards: [], cardsConfirmed: false,
     companionName: "", companionType: "", companionEvasion: 10,
     companionStress: Array(3).fill(false), companionDamageDieIdx: 0,
     companionRange: "Melee", companionAttackDesc: "",

@@ -281,7 +281,9 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const freeStress    = maxStress - currentStress;
   const canAfford = (cost) => {
     if (!cost) return true;
-    return cost.type === "hope" ? currentHope >= cost.amount : freeStress >= cost.amount;
+    if (cost.type === "hope") return currentHope >= cost.amount;
+    if (cost.type === "hp") { const freeHp = c.hp.slice(0, maxHp).filter(v => !v).length; return freeHp >= cost.amount; }
+    return freeStress >= cost.amount;
   };
   const spendCost = (cost) => {
     if (!cost) return;
@@ -289,11 +291,23 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
       const next = [...c.hope]; let n = cost.amount;
       for (let i = next.length - 1; i >= 0 && n > 0; i--) { if (next[i]) { next[i] = false; n--; } }
       u("hope", next);
+    } else if (cost.type === "hp") {
+      const next = [...c.hp]; let n = cost.amount;
+      for (let i = 0; i < maxHp && n > 0; i++) { if (!next[i]) { next[i] = true; n--; } }
+      u("hp", next);
     } else {
       const next = [...c.stress]; let n = cost.amount;
       for (let i = 0; i < maxStress && n > 0; i++) { if (!next[i]) { next[i] = true; n--; } }
       u("stress", next);
     }
+  };
+  const costDisplay = (card) => {
+    if (!card.cost && !card.optionalCost) return { text: "Free", color: P.textMuted };
+    if (!card.cost && card.optionalCost) return { text: "Free", color: P.textMuted };
+    const co = card.cost;
+    if (co.type === "hope") return { text: `${co.amount} Hope`, color: P.hope };
+    if (co.type === "hp") return { text: `${co.amount} HP`, color: P.fear };
+    return { text: `${co.amount} Stress`, color: P.stress };
   };
 
   // Build quick actions (pw/sw already declared above; use effTraits for accurate modifiers)
@@ -441,10 +455,12 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 8 }}>
                             <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700, marginBottom: 2 }}>RECALL</div>
-                            <div style={{ fontSize: 15, fontWeight: 800, fontFamily: mono, color: card.recallCost === 0 ? P.hp : P.stress }}>⚡{card.recallCost}</div>
+                            <div style={{ fontSize: 13, fontWeight: 800, fontFamily: mono, color: card.recallCost === 0 ? P.textMuted : P.stress }}>{card.recallCost === 0 ? "Free" : `⚡${card.recallCost} Stress`}</div>
+                            {(() => { const cd = costDisplay(card); return <div style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: cd.color, marginTop: 2 }}>USE: {cd.text}</div>; })()}
                           </div>
                         </div>
                         <div style={{ fontSize: 12, lineHeight: 1.7, color: P.textMuted, whiteSpace: "pre-line", borderTop: `1px solid ${isSelected ? domColor + "44" : P.border}`, paddingTop: 8, marginTop: 4 }}>{card.text}</div>
+                        {card.optionalCost && <div style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: card.optionalCost.type === "hope" ? P.hope : P.stress, marginTop: 4, padding: "3px 8px", border: `1px dashed ${card.optionalCost.type === "hope" ? P.hope + "66" : P.stress + "66"}`, borderRadius: 6, display: "inline-block" }}>⚡ {card.optionalCost.amount} {card.optionalCost.type === "hope" ? "Hope" : "Stress"} → {card.optionalCost.label}</div>}
                       </div>
                     );
                   })}
@@ -1394,12 +1410,16 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               if (!card) return null;
               const domColor = DOMAIN_COLORS[domain] || P.accent;
               const typeColor = { Ability: P.accent, Spell: "#a855f7", Grimoire: "#3b82f6" };
-              const dcCost = card.recallCost === 0 ? { type: "hope", amount: 1 } : { type: "stress", amount: card.recallCost };
+              const dcCost = card.cost;
               const dcAffordable = canAfford(dcCost);
+              const cd = costDisplay(card);
+              const hasCost = !!card.cost;
+              const hasOptional = !!card.optionalCost;
+              const optAffordable = hasOptional ? canAfford(card.optionalCost) : false;
               return (
                 <div key={key}
-                  onClick={() => { if (dcAffordable) spendCost(dcCost); }}
-                  style={{ marginBottom: 8, borderRadius: 10, border: `1px solid ${domColor}55`, background: domColor + "0d", overflow: "hidden", opacity: dcAffordable ? 1 : 0.45, cursor: dcAffordable ? "pointer" : "not-allowed" }}>
+                  onClick={() => { if (hasCost && dcAffordable) spendCost(dcCost); }}
+                  style={{ marginBottom: 8, borderRadius: 10, border: `1px solid ${domColor}55`, background: domColor + "0d", overflow: "hidden", opacity: hasCost && !dcAffordable ? 0.45 : 1, cursor: hasCost ? (dcAffordable ? "pointer" : "not-allowed") : "default" }}>
                   <div style={{ padding: "8px 12px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1407,9 +1427,14 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                         <span style={{ fontSize: 14, fontWeight: 800, color: domColor }}>{card.name}</span>
                         <span style={{ fontSize: 9, fontWeight: 700, color: typeColor[card.type] || P.textMuted, textTransform: "uppercase", letterSpacing: 0.8 }}>{card.type}</span>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: card.recallCost === 0 ? P.hope : P.stress }}>⚡{card.recallCost === 0 ? "1 Hope" : `${card.recallCost} Stress`}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: cd.color }}>⚡{cd.text}</span>
                     </div>
                     <div style={{ fontSize: 11, lineHeight: 1.65, color: P.textMuted, whiteSpace: "pre-line", marginTop: 6, paddingLeft: 16 }}>{card.text}</div>
+                    {hasOptional && <div
+                      onClick={(e) => { e.stopPropagation(); if (optAffordable) spendCost(card.optionalCost); }}
+                      style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: card.optionalCost.type === "hope" ? P.hope : P.stress, marginTop: 6, marginLeft: 16, padding: "4px 10px", border: `1px dashed ${card.optionalCost.type === "hope" ? P.hope + "66" : P.stress + "66"}`, borderRadius: 6, display: "inline-block", cursor: optAffordable ? "pointer" : "not-allowed", opacity: optAffordable ? 1 : 0.45 }}>
+                      ⚡ {card.optionalCost.amount} {card.optionalCost.type === "hope" ? "Hope" : "Stress"} → {card.optionalCost.label}
+                    </div>}
                   </div>
                 </div>
               );
@@ -1943,10 +1968,12 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 8 }}>
                           <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700, marginBottom: 2 }}>RECALL</div>
-                          <div style={{ fontSize: 15, fontWeight: 800, fontFamily: mono, color: card.recallCost === 0 ? P.hp : P.stress }}>⚡{card.recallCost}</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, fontFamily: mono, color: card.recallCost === 0 ? P.textMuted : P.stress }}>{card.recallCost === 0 ? "Free" : `⚡${card.recallCost} Stress`}</div>
+                          {(() => { const cd = costDisplay(card); return <div style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: cd.color, marginTop: 2 }}>USE: {cd.text}</div>; })()}
                         </div>
                       </div>
                       <div style={{ fontSize: 12, lineHeight: 1.7, color: P.textMuted, whiteSpace: "pre-line", borderTop: `1px solid ${isSelected ? domColor + "44" : P.border}`, paddingTop: 8, marginTop: 4 }}>{card.text}</div>
+                      {card.optionalCost && <div style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: card.optionalCost.type === "hope" ? P.hope : P.stress, marginTop: 4, padding: "3px 8px", border: `1px dashed ${card.optionalCost.type === "hope" ? P.hope + "66" : P.stress + "66"}`, borderRadius: 6, display: "inline-block" }}>⚡ {card.optionalCost.amount} {card.optionalCost.type === "hope" ? "Hope" : "Stress"} → {card.optionalCost.label}</div>}
                     </div>
                   );
                 })}

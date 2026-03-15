@@ -168,6 +168,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [editingCommunity, setEditingCommunity] = useState(false);
   const [swapCardsOnRest, setSwapCardsOnRest] = useState(false);
   const [cardSwapOpen, setCardSwapOpen] = useState(false);
+  const [unchosenCardsOpen, setUnchosenCardsOpen] = useState(false); // collapsible unchosen domain cards section
   const [traitModalOpen, setTraitModalOpen] = useState(false);
   const u = useCallback((k, v) => setC(p => ({ ...p, [k]: v })), [setC]);
   const uT = useCallback((t, v) => setC(p => ({ ...p, traits: { ...p.traits, [t]: v } })), [setC]);
@@ -755,7 +756,13 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 </div>
 
                 {/* Swap cards checkbox */}
-                {c.className && (
+                {/* FUTURE EXPANSION: At level 5, players earn their 6th card but hand max is 5.
+                    This creates vault overflow, enabling the rest-swap mechanic.
+                    Do not show this option until the player has more cards than their hand can hold (level >= 5).
+                    When the level-up system is implemented, the threshold should be:
+                      (earned cards > handMax), where earned = 1 + (level - 1) + classBonus
+                      and handMax = 5 (constant per rules). */}
+                {c.className && c.level >= 5 && (
                   <div onClick={() => setSwapCardsOnRest(v => !v)}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10,
                       border: `2px solid ${swapCardsOnRest ? P.accent : P.border}`,
@@ -1894,10 +1901,20 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           const domains = CLASSES[c.className]?.domains || [];
           const typeColor = { Ability: P.accent, Spell: "#a855f7", Grimoire: "#3b82f6" };
           const selCount = c.selectedCards.length;
-          // Max loadout = 5, but at level 1 you start with 2 earned cards.
-          // Rule: if selCount < maxLoadout (cards you've earned so far), let them pick freely.
-          // At level 1 with only level-1 cards available, starting loadout = 2.
-          // Once full, cards can only be swapped during a rest.
+
+          // FUTURE EXPANSION: Domain card progression by level:
+          //   Level 1: 2 earned cards (3 for Wizard/School of Knowledge)
+          //   Level 2+: +1 card per level (so level 2 = 3 cards, level 3 = 4, level 4 = 5)
+          //   Hand max: 5 cards (constant per rules)
+          //   Vault overflow begins at level 5 (6 earned cards, 5 max hand)
+          //   Card swapping on rest is only available when vault overflow exists (level >= 5).
+          //
+          // maxLoadout below reflects ONLY the level-1 starting loadout.
+          // When a level-up system is added, replace with:
+          //   const earnedCards = 1 + (c.level - 1) + (classBonus);
+          //   const handMax = 5;
+          //   const hasVaultOverflow = earnedCards > handMax;
+          //
           // School of Knowledge Wizard: 'Prepared' foundation grants an extra card at creation
           const maxLoadout = (c.className === "Wizard" && c.subclass === "School of Knowledge") ? 3 : 2;
           const isConfirmed = !!c.cardsConfirmed;
@@ -1911,6 +1928,47 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             const already = c.selectedCards.includes(key);
             if (already && canRemove) u("selectedCards", c.selectedCards.filter(k => k !== key));
             else if (!already && canAdd) u("selectedCards", [...c.selectedCards, key]);
+          };
+
+          // Helper: renders a single domain card element
+          // isReadOnly = true when confirmed and the card should not be interactive
+          // dimmed = true for unchosen cards shown in the collapsed section
+          const renderCard = (domain, card, { isReadOnly = false, dimmed = false } = {}) => {
+            const key = `${domain}::${card.name}`;
+            const isSelected = c.selectedCards.includes(key);
+            const domColor = DOMAIN_COLORS[domain] || P.accent;
+            return (
+              <div key={card.name}
+                onClick={() => {
+                  if (isReadOnly) return;
+                  if (isSelected && canRemove) toggleCard(domain, card.name);
+                  else if (!isSelected && canAdd) toggleCard(domain, card.name);
+                }}
+                style={{ marginBottom: 10, borderRadius: 12, padding: 14,
+                  border: `2px solid ${isSelected ? domColor : P.border}`,
+                  background: isSelected ? domColor + "18" : P.card,
+                  opacity: dimmed ? 0.4 : (!isSelected && isFull && !isReadOnly ? 0.5 : 1),
+                  cursor: isReadOnly ? "default" : (!isSelected && isFull ? "default" : "pointer"),
+                  boxShadow: isSelected && !dimmed ? `0 0 16px ${domColor}33` : "none",
+                  transition: "all .2s" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: typeColor[card.type] || P.textMuted }}>{card.type}</div>
+                      {isSelected && !dimmed && <div style={{ fontSize: 9, fontWeight: 800, color: domColor, background: domColor + "22", borderRadius: 4, padding: "1px 6px", letterSpacing: 0.5 }}>IN LOADOUT</div>}
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: isSelected && !dimmed ? domColor : P.text }}>{card.name}</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 8 }}>
+                    <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700, marginBottom: 2 }}>RECALL</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, fontFamily: mono, color: card.recallCost === 0 ? P.textMuted : P.stress }}>{card.recallCost === 0 ? "Free" : `⚡${card.recallCost} Stress`}</div>
+                    {(() => { const cd = costDisplay(card); return <div style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: cd.color, marginTop: 2 }}>USE: {cd.text}</div>; })()}
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, lineHeight: 1.7, color: P.textMuted, whiteSpace: "pre-line", borderTop: `1px solid ${isSelected && !dimmed ? domColor + "44" : P.border}`, paddingTop: 8, marginTop: 4 }}>{card.text}</div>
+                {card.optionalCost && <div style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: card.optionalCost.type === "hope" ? P.hope : P.stress, marginTop: 4, padding: "3px 8px", border: `1px dashed ${card.optionalCost.type === "hope" ? P.hope + "66" : P.stress + "66"}`, borderRadius: 6, display: "inline-block" }}>⚡ {card.optionalCost.amount} {card.optionalCost.type === "hope" ? "Hope" : "Stress"} → {card.optionalCost.label}</div>}
+              </div>
+            );
           };
 
           return <>
@@ -1929,56 +1987,94 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                   Confirm ✓
                 </button>
               )}
-              {isFull && isConfirmed && (
-                <button onClick={() => u("cardsConfirmed", false)}
-                  style={{ marginTop: 6, width: "100%", padding: "8px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  Edit Loadout
-                </button>
-              )}
             </Card>
-            {/* Domain cards — interactive while editing, display-only when confirmed */}
-            {domains.map(domain => (
+
+            {/* ── EDITING MODE: show all domain cards interactively ── */}
+            {isEditing && domains.map(domain => (
               <div key={domain}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: 4 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: DOMAIN_COLORS[domain] || P.accent }} />
                   <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain — Level 1</Lbl>
                 </div>
-                {(DOMAIN_CARDS[domain] || []).map(card => {
-                  const key = `${domain}::${card.name}`;
-                  const isSelected = c.selectedCards.includes(key);
-                  const isDisabled = isConfirmed || (!isSelected && isFull);
-                  const domColor = DOMAIN_COLORS[domain] || P.accent;
-                  return (
-                    <div key={card.name}
-                      onClick={() => { if (isSelected && canRemove) toggleCard(domain, card.name); else if (!isSelected && canAdd) toggleCard(domain, card.name); }}
-                      style={{ marginBottom: 10, borderRadius: 12, padding: 14,
-                        border: `2px solid ${isSelected ? domColor : P.border}`,
-                        background: isSelected ? domColor + "18" : P.card,
-                        opacity: isDisabled ? 0.5 : 1,
-                        cursor: isDisabled ? "default" : "pointer",
-                        boxShadow: isSelected ? `0 0 16px ${domColor}33` : "none",
-                        transition: "all .2s" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: typeColor[card.type] || P.textMuted }}>{card.type}</div>
-                            {isSelected && <div style={{ fontSize: 9, fontWeight: 800, color: domColor, background: domColor + "22", borderRadius: 4, padding: "1px 6px", letterSpacing: 0.5 }}>IN LOADOUT</div>}
-                          </div>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: isSelected ? domColor : P.text }}>{card.name}</div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 8 }}>
-                          <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700, marginBottom: 2 }}>RECALL</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, fontFamily: mono, color: card.recallCost === 0 ? P.textMuted : P.stress }}>{card.recallCost === 0 ? "Free" : `⚡${card.recallCost} Stress`}</div>
-                          {(() => { const cd = costDisplay(card); return <div style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: cd.color, marginTop: 2 }}>USE: {cd.text}</div>; })()}
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 12, lineHeight: 1.7, color: P.textMuted, whiteSpace: "pre-line", borderTop: `1px solid ${isSelected ? domColor + "44" : P.border}`, paddingTop: 8, marginTop: 4 }}>{card.text}</div>
-                      {card.optionalCost && <div style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: card.optionalCost.type === "hope" ? P.hope : P.stress, marginTop: 4, padding: "3px 8px", border: `1px dashed ${card.optionalCost.type === "hope" ? P.hope + "66" : P.stress + "66"}`, borderRadius: 6, display: "inline-block" }}>⚡ {card.optionalCost.amount} {card.optionalCost.type === "hope" ? "Hope" : "Stress"} → {card.optionalCost.label}</div>}
-                    </div>
-                  );
-                })}
+                {(DOMAIN_CARDS[domain] || []).map(card => renderCard(domain, card))}
               </div>
             ))}
+
+            {/* ── CONFIRMED MODE: selected cards bright, unchosen cards in collapsible ── */}
+            {isConfirmed && <>
+              {/* Selected (loadout) cards grouped by domain — bright and non-interactive */}
+              {domains.map(domain => {
+                const domainSelectedCards = (DOMAIN_CARDS[domain] || []).filter(card =>
+                  c.selectedCards.includes(`${domain}::${card.name}`)
+                );
+                if (domainSelectedCards.length === 0) return null;
+                return (
+                  <div key={domain}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: 4 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: DOMAIN_COLORS[domain] || P.accent }} />
+                      <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain — Level 1</Lbl>
+                    </div>
+                    {domainSelectedCards.map(card => renderCard(domain, card, { isReadOnly: true }))}
+                  </div>
+                );
+              })}
+
+              {/* Unchosen domain cards — collapsible, read-only, dimmed */}
+              {/* FUTURE EXPANSION: When vault mechanics are added (level 5+), unchosen cards
+                  become the player's vault pool. Cards in the vault can be recalled by spending
+                  their recall cost, or swapped freely during a rest. The collapsible below will
+                  naturally extend into that vault UI — add recall buttons and vault state here. */}
+              {(() => {
+                const unchosenByDomain = domains
+                  .map(domain => ({
+                    domain,
+                    cards: (DOMAIN_CARDS[domain] || []).filter(card =>
+                      !c.selectedCards.includes(`${domain}::${card.name}`)
+                    )
+                  }))
+                  .filter(d => d.cards.length > 0);
+                const totalUnchosen = unchosenByDomain.reduce((n, d) => n + d.cards.length, 0);
+                if (totalUnchosen === 0) return null;
+                return (
+                  <div style={{ marginTop: 8 }}>
+                    <div
+                      onClick={() => setUnchosenCardsOpen(v => !v)}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "10px 14px", borderRadius: 10, border: `1px solid ${P.border}`,
+                        background: P.surface, cursor: "pointer", userSelect: "none", marginBottom: unchosenCardsOpen ? 8 : 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: P.textMuted }}>
+                        Unchosen Domain Cards ({totalUnchosen})
+                      </div>
+                      <div style={{ fontSize: 16, color: P.textMuted, transform: unchosenCardsOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</div>
+                    </div>
+                    {unchosenCardsOpen && (
+                      <div>
+                        <div style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic", marginBottom: 10, padding: "0 4px" }}>
+                          These are the domain cards you didn't take — view only.
+                        </div>
+                        {unchosenByDomain.map(({ domain, cards }) => (
+                          <div key={domain}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: 4 }}>
+                              <div style={{ width: 10, height: 10, borderRadius: "50%", background: DOMAIN_COLORS[domain] || P.accent }} />
+                              <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain — Level 1</Lbl>
+                            </div>
+                            {cards.map(card => renderCard(domain, card, { isReadOnly: true, dimmed: true }))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Edit Loadout button — at the bottom, less intrusive */}
+              <button onClick={() => u("cardsConfirmed", false)}
+                style={{ marginTop: 12, width: "100%", padding: "8px", borderRadius: 8,
+                  border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted,
+                  fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Edit Loadout
+              </button>
+            </>}
           </>;
         })()}
         {tab === "Notes" && <>

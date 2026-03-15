@@ -15,9 +15,9 @@ function newChar(id) {
     traitMarks: { Agility: false, Strength: false, Finesse: false, Instinct: false, Presence: false, Knowledge: false },
     subclassLevel: 1,
     advUsed: {
-      tier2: { traits: 0, hp: 0, stress: 0, exp: 0, card: 0, evasion: 0 },
-      tier3: { traits: 0, hp: 0, stress: 0, exp: 0, card: 0, evasion: 0, subclass: 0, proficiency: 0, multiclass: 0 },
-      tier4: { traits: 0, hp: 0, stress: 0, exp: 0, card: 0, evasion: 0, subclass: 0, proficiency: 0, multiclass: 0 },
+      tier2: { traits: 0, hp: 0, stress: 0, exp: 0, card: 0, evasion: 0, traitsPicked: [] },
+      tier3: { traits: 0, hp: 0, stress: 0, exp: 0, card: 0, evasion: 0, subclass: 0, proficiency: 0, multiclass: 0, traitsPicked: [] },
+      tier4: { traits: 0, hp: 0, stress: 0, exp: 0, card: 0, evasion: 0, subclass: 0, proficiency: 0, multiclass: 0, traitsPicked: [] },
     },
     profBonus: 0,
     evasionBonus: 0,

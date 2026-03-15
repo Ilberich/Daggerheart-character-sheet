@@ -564,6 +564,61 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     setLevelUpOpen(false);
   };
 
+  const handleLevelDown = () => {
+    setC(prev => {
+      const currentLevel = prev.level;
+      if (currentLevel <= 1) return prev;
+
+      const next = { ...prev, level: currentLevel - 1 };
+      const entry = prev.levelUps?.[String(currentLevel)];
+
+      if (entry?.choices?.length) {
+        const au = JSON.parse(JSON.stringify(prev.advUsed || { tier2: {}, tier3: {}, tier4: {} }));
+
+        for (const pick of entry.choices) {
+          const t = pick.fromTier;
+          au[t][pick.type] = Math.max(0, (au[t][pick.type] || 0) - 1);
+
+          if (pick.type === "traits") {
+            const traits = { ...next.traits };
+            for (const tr of (pick.traits || [])) { traits[tr] = (traits[tr] || 0) - 1; }
+            next.traits = traits;
+          }
+          if (pick.type === "hp")     { const hp = [...(next.hp ?? prev.hp)]; hp.pop(); next.hp = hp; }
+          if (pick.type === "stress") { const stress = [...(next.stress ?? prev.stress)]; stress.pop(); next.stress = stress; }
+          if (pick.type === "exp")    { for (const k of (pick.keys || [])) next[k] = ((next[k] !== undefined ? next[k] : prev[k]) || 2) - 1; }
+          if (pick.type === "evasion")     next.evasionBonus = ((next.evasionBonus !== undefined ? next.evasionBonus : prev.evasionBonus) || 0) - 1;
+          if (pick.type === "subclass")    next.subclassLevel = Math.max(1, ((next.subclassLevel !== undefined ? next.subclassLevel : prev.subclassLevel) || 1) - 1);
+          if (pick.type === "proficiency") next.profBonus = ((next.profBonus !== undefined ? next.profBonus : prev.profBonus) || 0) - 1;
+        }
+
+        next.advUsed = au;
+      }
+
+      const levelUps = { ...(prev.levelUps || {}) };
+      delete levelUps[String(currentLevel)];
+      next.levelUps = levelUps;
+
+      // Recompute traitMarks by scanning remaining levelUps in the current tier
+      const newLevel = next.level;
+      const tierStart = newLevel >= 8 ? 8 : newLevel >= 5 ? 5 : newLevel >= 2 ? 2 : null;
+      const freshMarks = { Agility: false, Strength: false, Finesse: false, Instinct: false, Presence: false, Knowledge: false };
+      if (tierStart !== null) {
+        for (let lvl = tierStart; lvl <= newLevel; lvl++) {
+          const lvlEntry = next.levelUps[String(lvl)];
+          if (lvlEntry?.choices) {
+            for (const pick of lvlEntry.choices) {
+              if (pick.type === "traits") { for (const tr of (pick.traits || [])) freshMarks[tr] = true; }
+            }
+          }
+        }
+      }
+      next.traitMarks = freshMarks;
+
+      return next;
+    });
+  };
+
   const handleOpenLevelUp = () => {
     if (c.level >= 10) return;
     if (!c.className)      { alert("Select a class before leveling up."); return; }
@@ -1215,7 +1270,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             <div style={{ display: "flex", gap: 8 }}><Inp value={c.name} onChange={v => u("name", v)} placeholder="Name" style={{ flex: 2 }} /><Inp value={c.pronouns} onChange={v => u("pronouns", v)} placeholder="Pronouns" style={{ flex: 1 }} /></div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <span style={{ fontSize: 10, color: P.textMuted, fontWeight: 700 }}>LVL</span>
-              <button onClick={() => u("level", Math.max(1, c.level - 1))} style={{ ...sBtn, width: 22, height: 22 }}>−</button>
+              <button onClick={handleLevelDown} style={{ ...sBtn, width: 22, height: 22 }}>−</button>
               <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, minWidth: 20, textAlign: "center" }}>{c.level}</span>
               <button onClick={handleOpenLevelUp} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${c.level >= 10 ? P.border : P.accent}`, background: c.level >= 10 ? P.surface : P.accent + "22", color: c.level >= 10 ? P.textMuted : P.accent, cursor: c.level >= 10 ? "default" : "pointer", fontFamily: "inherit", fontWeight: 700 }}>{c.level >= 10 ? "Max" : "▲"}</button>
               {cls && <button onClick={() => setC(p => ({ ...p, traits: { ...cls.suggestedTraits } }))} style={{ marginLeft: "auto", fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.accent, cursor: "pointer", fontFamily: "inherit" }}>Suggested Traits</button>}

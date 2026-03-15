@@ -1,4 +1,21 @@
 // ═══════════════════════════════════════════════════════════════
+// LEVELING SYSTEM CONSTANTS & HELPERS
+// ═══════════════════════════════════════════════════════════════
+const ADV_MAX  = { traits: 3, hp: 2, stress: 2, exp: 1, card: 1, evasion: 1, subclass: 1, proficiency: 1, multiclass: 1 };
+const ADV_COST = { traits: 1, hp: 1, stress: 1, exp: 1, card: 1, evasion: 1, subclass: 1, proficiency: 2, multiclass: 2 };
+
+function advTierKey(lvl) { return lvl <= 4 ? "tier2" : lvl <= 7 ? "tier3" : "tier4"; }
+function advAccessibleTiers(lvl) {
+  if (lvl <= 4) return ["tier2"];
+  if (lvl <= 7) return ["tier2", "tier3"];
+  return ["tier2", "tier3", "tier4"];
+}
+function advRemainingUses(advUsed, lvl, option) {
+  return advAccessibleTiers(lvl).reduce((sum, t) =>
+    sum + Math.max(0, ADV_MAX[option] - ((advUsed?.[t]?.[option]) || 0)), 0);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // TRAIT ASSIGNMENT MODAL
 // ═══════════════════════════════════════════════════════════════
 function TraitModal({ currentTraits, suggestedTraits, pool, onConfirm, onClose }) {
@@ -153,6 +170,332 @@ function TraitModal({ currentTraits, suggestedTraits, pool, onConfirm, onClose }
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// LEVEL UP MODAL
+// ═══════════════════════════════════════════════════════════════
+function LevelUpModal({ c, onConfirm, onClose }) {
+  const newLevel = c.level + 1;
+  const isNewTier = [2, 5, 8].includes(newLevel);
+  const tierLabel = newLevel <= 4 ? "Tier 2" : newLevel <= 7 ? "Tier 3" : "Tier 4";
+  const advUsed = c.advUsed || { tier2: {}, tier3: {}, tier4: {} };
+  const traitMarks = c.traitMarks || {};
+
+  const [picks, setPicks] = useState([]);
+  const [traitPicker, setTraitPicker] = useState(null); // { tier } when open
+  const [tempTraits, setTempTraits] = useState([]);
+  const [expPicker, setExpPicker] = useState(null);   // { tier } when open
+  const [tempExpKeys, setTempExpKeys] = useState([]);
+
+  const pointsSpent = picks.reduce((sum, p) => sum + ADV_COST[p.type], 0);
+  const pointsLeft  = 2 - pointsSpent;
+
+  const committedCount = (tier, opt) => (advUsed[tier]?.[opt]) || 0;
+  const pendingCount   = (tier, opt) => picks.filter(p => p.fromTier === tier && p.type === opt).length;
+  const totalUsed      = (tier, opt) => committedCount(tier, opt) + pendingCount(tier, opt);
+
+  const effectiveSubLv = (c.subclassLevel ?? 1) + picks.filter(p => p.type === "subclass").length;
+
+  const canAddPick = (tier, opt) => {
+    if (ADV_COST[opt] > pointsLeft) return false;
+    if (totalUsed(tier, opt) >= ADV_MAX[opt]) return false;
+    if (opt === "subclass") {
+      if (totalUsed(tier, "multiclass") > 0) return false;
+      if (effectiveSubLv >= 3) return false;
+      if (tier === "tier3" && effectiveSubLv >= 2) return false;
+    }
+    if (opt === "multiclass") {
+      if (totalUsed(tier, "subclass") > 0) return false;
+    }
+    return true;
+  };
+
+  const removePendingPick = (tier, opt) => {
+    const all = picks.map((p, i) => ({ p, i })).filter(({ p }) => p.fromTier === tier && p.type === opt);
+    const last = all[all.length - 1];
+    if (last) setPicks(prev => prev.filter((_, i) => i !== last.i));
+  };
+
+  const handleSlotClick = (tier, opt) => {
+    if (!canAddPick(tier, opt)) return;
+    if (opt === "traits")   { setTraitPicker({ tier }); setTempTraits([]); }
+    else if (opt === "exp") { setExpPicker({ tier }); setTempExpKeys([]); }
+    else setPicks(prev => [...prev, { type: opt, fromTier: tier }]);
+  };
+
+  const handleConfirmTraits = () => {
+    if (tempTraits.length !== 2) return;
+    setPicks(prev => [...prev, { type: "traits", fromTier: traitPicker.tier, traits: tempTraits }]);
+    setTraitPicker(null); setTempTraits([]);
+  };
+
+  const handleConfirmExp = () => {
+    if (tempExpKeys.length !== 2) return;
+    setPicks(prev => [...prev, { type: "exp", fromTier: expPicker.tier, keys: tempExpKeys }]);
+    setExpPicker(null); setTempExpKeys([]);
+  };
+
+  // Effective marks including pending trait picks
+  const effectiveMarks = { ...traitMarks };
+  picks.filter(p => p.type === "traits").forEach(p => {
+    (p.traits || []).forEach(t => { effectiveMarks[t] = true; });
+  });
+
+  // Experience slots with a name
+  const allExpsLU = [
+    { key: "exp1", valKey: "exp1Val" },
+    { key: "exp2", valKey: "exp2Val" },
+    ...(c.level >= 2 ? [{ key: "exp3", valKey: "exp3Val" }] : []),
+    ...(c.level >= 5 ? [{ key: "exp4", valKey: "exp4Val" }] : []),
+    ...(c.level >= 8 ? [{ key: "exp5", valKey: "exp5Val" }] : []),
+  ].filter(e => c[e.key]);
+
+  const tiersToShow = advAccessibleTiers(newLevel);
+
+  // ── Sub-view: trait picker ──────────────────────────────────────
+  if (traitPicker) {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 1004, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+        <div style={{ width: "100%", maxWidth: 480, background: P.card, borderRadius: "20px 20px 0 0", padding: 20, paddingBottom: 32, border: `1px solid ${P.border}`, borderBottom: "none" }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: P.accent, marginBottom: 4 }}>Choose Two Traits to Increase</div>
+          <div style={{ fontSize: 12, color: P.textMuted, marginBottom: 16 }}>Select 2 unmarked traits to gain +1 to each. Chosen traits will be marked for this tier.</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {TRAIT_KEYS.map(t => {
+              const isMarked   = !!effectiveMarks[t];
+              const isSelected = tempTraits.includes(t);
+              const curVal     = c.traits[t] || 0;
+              return (
+                <div key={t} onClick={() => {
+                  if (isMarked) return;
+                  if (isSelected) setTempTraits(prev => prev.filter(x => x !== t));
+                  else if (tempTraits.length < 2) setTempTraits(prev => [...prev, t]);
+                }} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "10px 14px", borderRadius: 8,
+                  border: `1px solid ${isSelected ? P.accent : P.border}`,
+                  background: isSelected ? P.accent + "22" : P.surface,
+                  cursor: isMarked ? "not-allowed" : "pointer",
+                  opacity: isMarked ? 0.4 : 1
+                }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? P.accent : P.text }}>{t}</div>
+                    {isMarked && <div style={{ fontSize: 9, color: P.textMuted }}>Marked — cannot increase this tier</div>}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, color: P.text }}>{curVal >= 0 ? `+${curVal}` : `${curVal}`}</span>
+                    {isSelected && <span style={{ fontSize: 12, color: P.accent, fontWeight: 700 }}>→ {curVal + 1 >= 0 ? `+${curVal + 1}` : `${curVal + 1}`}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => { setTraitPicker(null); setTempTraits([]); }} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            <button onClick={handleConfirmTraits} disabled={tempTraits.length !== 2} style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: tempTraits.length === 2 ? P.accent : P.border, color: tempTraits.length === 2 ? "#fff" : P.textMuted, fontSize: 14, fontWeight: 800, cursor: tempTraits.length === 2 ? "pointer" : "default", fontFamily: "inherit" }}>
+              {tempTraits.length === 2 ? `Confirm +1 to ${tempTraits.map(t => TRAIT_SHORT[t]).join(", ")}` : `Select ${2 - tempTraits.length} more trait${2 - tempTraits.length !== 1 ? "s" : ""}`}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Sub-view: experience picker ────────────────────────────────
+  if (expPicker) {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 1004, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+        <div style={{ width: "100%", maxWidth: 480, background: P.card, borderRadius: "20px 20px 0 0", padding: 20, paddingBottom: 32, border: `1px solid ${P.border}`, borderBottom: "none" }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: P.accent, marginBottom: 4 }}>Choose Two Experiences to Boost</div>
+          <div style={{ fontSize: 12, color: P.textMuted, marginBottom: 16 }}>Select 2 existing experiences to permanently gain +1 to each.</div>
+          {allExpsLU.length < 2 && (
+            <div style={{ fontSize: 12, color: P.textMuted, fontStyle: "italic", marginBottom: 12, padding: "10px 14px", background: P.surface, borderRadius: 8 }}>
+              You need at least 2 named experiences. Add them on the Play tab first.
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {allExpsLU.map(({ key, valKey }) => {
+              const isSelected = tempExpKeys.includes(valKey);
+              return (
+                <div key={key} onClick={() => {
+                  if (isSelected) setTempExpKeys(prev => prev.filter(x => x !== valKey));
+                  else if (tempExpKeys.length < 2) setTempExpKeys(prev => [...prev, valKey]);
+                }} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "10px 14px", borderRadius: 8,
+                  border: `1px solid ${isSelected ? P.accent : P.border}`,
+                  background: isSelected ? P.accent + "22" : P.surface,
+                  cursor: "pointer"
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: isSelected ? P.accent : P.text }}>{c[key]}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: P.accent }}>
+                    +{c[valKey]}{isSelected ? ` → +${c[valKey] + 1}` : ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => { setExpPicker(null); setTempExpKeys([]); }} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            <button onClick={handleConfirmExp} disabled={tempExpKeys.length !== 2 || allExpsLU.length < 2} style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: tempExpKeys.length === 2 && allExpsLU.length >= 2 ? P.accent : P.border, color: tempExpKeys.length === 2 && allExpsLU.length >= 2 ? "#fff" : P.textMuted, fontSize: 14, fontWeight: 800, cursor: tempExpKeys.length === 2 && allExpsLU.length >= 2 ? "pointer" : "default", fontFamily: "inherit" }}>
+              {tempExpKeys.length === 2 ? "Confirm +1 to Selected" : `Select ${2 - tempExpKeys.length} more`}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main modal ─────────────────────────────────────────────────
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 1004, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ width: "100%", maxWidth: 480, background: P.card, borderRadius: "20px 20px 0 0", maxHeight: "90vh", display: "flex", flexDirection: "column", border: `1px solid ${P.border}`, borderBottom: "none" }}>
+
+        {/* Header */}
+        <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid ${P.border}`, flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: P.accent }}>Level Up to {newLevel}</div>
+              <div style={{ fontSize: 12, color: P.textMuted, marginTop: 2 }}>{tierLabel} · 2 points to spend</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, fontFamily: mono, color: pointsLeft > 0 ? P.hope : P.hp }}>{pointsLeft}</div>
+              <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700, letterSpacing: 0.5 }}>PTS LEFT</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+
+          {/* Tier transition auto-bonus */}
+          {isNewTier && (
+            <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 10, background: P.surface, border: `1px solid ${P.accent}55` }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: P.accent, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>Auto-Applied Tier Bonus</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ fontSize: 12, color: P.text }}>✓ Gain a new Experience slot</div>
+                <div style={{ fontSize: 12, color: P.text }}>✓ Proficiency increases (tier formula)</div>
+                {newLevel >= 5 && <div style={{ fontSize: 12, color: P.text }}>✓ All trait marks cleared</div>}
+              </div>
+            </div>
+          )}
+
+          {/* Tier option sections */}
+          {tiersToShow.map((tier, tIdx) => {
+            const tierName = { tier2: "Tier 2", tier3: "Tier 3", tier4: "Tier 4" }[tier];
+            const sharedOpts = [
+              { opt: "traits",  label: "Increase Two Traits",    slots: ADV_MAX.traits  },
+              { opt: "hp",      label: "+1 HP Slot",             slots: ADV_MAX.hp      },
+              { opt: "stress",  label: "+1 Stress Slot",         slots: ADV_MAX.stress  },
+              { opt: "exp",     label: "+1 to Two Experiences",  slots: ADV_MAX.exp     },
+              { opt: "evasion", label: "+1 Evasion",             slots: ADV_MAX.evasion },
+            ];
+            const exclusiveOpts = tier !== "tier2" ? [
+              { opt: "subclass",    label: tier === "tier3" ? "Upgrade: Foundation → Spec" : "Upgrade: Spec → Mastery", slots: ADV_MAX.subclass    },
+              { opt: "proficiency", label: "+1 Proficiency",  slots: ADV_MAX.proficiency, cost2: true },
+              { opt: "multiclass",  label: "Multiclass",      slots: ADV_MAX.multiclass,  cost2: true },
+            ] : [];
+            const allOpts = [...sharedOpts, ...exclusiveOpts];
+
+            return (
+              <div key={tier} style={{ marginBottom: tIdx < tiersToShow.length - 1 ? 20 : 0 }}>
+                {tiersToShow.length > 1 && (
+                  <div style={{ fontSize: 10, fontWeight: 800, color: P.textMuted, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${P.border}` }}>
+                    {tierName} Options
+                  </div>
+                )}
+                {allOpts.map(({ opt, label, slots, cost2 }) => {
+                  const committed = committedCount(tier, opt);
+                  const pending   = pendingCount(tier, opt);
+                  const used      = committed + pending;
+                  const addable   = canAddPick(tier, opt);
+                  const allFull   = used >= slots;
+                  const mutexBlk  = (opt === "subclass"   && totalUsed(tier, "multiclass") > 0)
+                                 || (opt === "multiclass" && totalUsed(tier, "subclass")   > 0);
+                  const subImposs = opt === "subclass" && !mutexBlk && (
+                    effectiveSubLv >= (tier === "tier3" ? 2 : 3)
+                  );
+                  const dimmed = (allFull && pending === 0) || mutexBlk || subImposs;
+
+                  return (
+                    <div key={opt} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 9, opacity: dimmed ? 0.42 : 1 }}>
+                      {/* Checkbox slots */}
+                      <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                        {cost2 ? (
+                          <div
+                            onClick={() => {
+                              if (committed > 0) return;
+                              if (pending > 0) removePendingPick(tier, opt);
+                              else if (addable) setPicks(prev => [...prev, { type: opt, fromTier: tier }]);
+                            }}
+                            style={{
+                              width: 48, height: 22, borderRadius: 4,
+                              border: `2px solid ${committed > 0 || pending > 0 ? P.accent : addable ? P.textMuted : P.border}`,
+                              background: committed > 0 ? P.accent + "99" : pending > 0 ? P.accent + "33" : "transparent",
+                              cursor: committed > 0 ? "default" : (addable || pending > 0) ? "pointer" : "default",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 10, fontWeight: 800,
+                              color: committed > 0 || pending > 0 ? P.accent : P.textMuted
+                            }}>
+                            {committed > 0 || pending > 0 ? "✓" : "2pt"}
+                          </div>
+                        ) : (
+                          Array.from({ length: slots }, (_, i) => {
+                            const isCom  = i < committed;
+                            const isPen  = i >= committed && i < committed + pending;
+                            const isNext = i === committed + pending && !allFull;
+                            return (
+                              <div key={i}
+                                onClick={() => {
+                                  if (isCom) return;
+                                  if (isPen) removePendingPick(tier, opt);
+                                  else if (isNext) handleSlotClick(tier, opt);
+                                }}
+                                style={{
+                                  width: 22, height: 22, borderRadius: 4,
+                                  border: `1px solid ${isCom ? P.accent : isPen ? P.accent : (isNext && addable ? P.textMuted : P.border)}`,
+                                  background: isCom ? P.accent + "99" : isPen ? P.accent + "33" : "transparent",
+                                  cursor: (isCom || (!isNext && !isPen)) ? "default" : "pointer",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  fontSize: 11, color: P.accent, fontWeight: 800
+                                }}>
+                                {(isCom || isPen) ? "✓" : ""}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                      {/* Label */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, color: dimmed ? P.textMuted : P.text, fontWeight: 600 }}>
+                          {label}
+                          {cost2 && <span style={{ fontSize: 10, color: P.textMuted, marginLeft: 6, fontWeight: 400 }}>(2 pts)</span>}
+                        </div>
+                        {mutexBlk && opt === "subclass"   && <div style={{ fontSize: 9, color: P.fear, marginTop: 1 }}>Blocked by Multiclass this tier</div>}
+                        {mutexBlk && opt === "multiclass" && <div style={{ fontSize: 9, color: P.fear, marginTop: 1 }}>Blocked by Subclass upgrade this tier</div>}
+                        {subImposs && tier === "tier3"    && <div style={{ fontSize: 9, color: P.textMuted, marginTop: 1 }}>Mastery upgrade available in Tier 4</div>}
+                        {subImposs && tier === "tier4"    && <div style={{ fontSize: 9, color: P.textMuted, marginTop: 1 }}>Already at Mastery</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "16px 20px", borderTop: `1px solid ${P.border}`, display: "flex", gap: 10, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={() => onConfirm(picks)} disabled={pointsSpent < 2}
+            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: pointsSpent >= 2 ? P.accent : P.border, color: pointsSpent >= 2 ? "#fff" : P.textMuted, fontSize: 14, fontWeight: 800, cursor: pointsSpent >= 2 ? "pointer" : "default", fontFamily: "inherit", transition: "all .15s" }}>
+            {pointsSpent >= 2 ? `Level Up to ${newLevel}! ⬆` : `Spend ${pointsLeft} more pt${pointsLeft !== 1 ? "s" : ""}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [tab, setTab] = useState("Play");
   const [editHdr, setEditHdr] = useState(false);
@@ -170,6 +513,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [cardSwapOpen, setCardSwapOpen] = useState(false);
   const [unchosenCardsOpen, setUnchosenCardsOpen] = useState(false); // collapsible unchosen domain cards section
   const [traitModalOpen, setTraitModalOpen] = useState(false);
+  const [levelUpOpen, setLevelUpOpen] = useState(false);
   const u = useCallback((k, v) => setC(p => ({ ...p, [k]: v })), [setC]);
   const uT = useCallback((t, v) => setC(p => ({ ...p, traits: { ...p.traits, [t]: v } })), [setC]);
   const tog = useCallback((k, i) => setC(p => { const a = [...p[k]]; a[i] = !a[i]; return { ...p, [k]: a }; }), [setC]);
@@ -182,13 +526,59 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     });
   }, []);
 
+  const applyLevelUp = (picks) => {
+    const newLevel = c.level + 1;
+    const isNewTier = [2, 5, 8].includes(newLevel);
+    setC(prev => {
+      const next = { ...prev, level: newLevel };
+      const au = JSON.parse(JSON.stringify(prev.advUsed || { tier2: {}, tier3: {}, tier4: {} }));
+      if (isNewTier && newLevel >= 5) {
+        next.traitMarks = { Agility: false, Strength: false, Finesse: false, Instinct: false, Presence: false, Knowledge: false };
+      }
+      for (const pick of picks) {
+        const t = pick.fromTier;
+        au[t][pick.type] = (au[t][pick.type] || 0) + 1;
+        if (pick.type === "traits") {
+          const traits = { ...next.traits };
+          const marks  = { ...(next.traitMarks || prev.traitMarks || {}) };
+          for (const tr of pick.traits) { traits[tr] = (traits[tr] || 0) + 1; marks[tr] = true; }
+          next.traits = traits; next.traitMarks = marks;
+        }
+        if (pick.type === "hp")          next.hp = [...(next.hp || prev.hp), false];
+        if (pick.type === "stress")      next.stress = [...(next.stress || prev.stress), false];
+        if (pick.type === "exp")         { for (const k of (pick.keys || [])) next[k] = ((next[k] !== undefined ? next[k] : prev[k]) || 2) + 1; }
+        if (pick.type === "evasion")     next.evasionBonus = ((next.evasionBonus !== undefined ? next.evasionBonus : prev.evasionBonus) || 0) + 1;
+        if (pick.type === "subclass")    next.subclassLevel = ((next.subclassLevel !== undefined ? next.subclassLevel : prev.subclassLevel) || 1) + 1;
+        if (pick.type === "proficiency") next.profBonus = ((next.profBonus !== undefined ? next.profBonus : prev.profBonus) || 0) + 1;
+      }
+      next.advUsed = au;
+      next.levelUps = {
+        ...(prev.levelUps || {}),
+        [String(newLevel)]: {
+          choices: picks,
+          autoBonus: isNewTier ? { newExp: true, profTier: true, marksCleared: newLevel >= 5 } : null,
+        }
+      };
+      return next;
+    });
+    setLevelUpOpen(false);
+  };
+
+  const handleOpenLevelUp = () => {
+    if (c.level >= 10) return;
+    if (!c.className)      { alert("Select a class before leveling up."); return; }
+    if (!c.cardsConfirmed) { alert("Confirm your starting domain card loadout before leveling up."); return; }
+    setLevelUpOpen(true);
+  };
+
   const cls = c.className ? CLASSES[c.className] : null;
   const sub = cls && c.subclass ? cls.subclasses[c.subclass] : null;
+  const subclassLevel = c.subclassLevel ?? (c.level >= 8 ? 3 : c.level >= 5 ? 2 : 1);
 
   // Stat bonuses — all sources accumulate so they always stack
   let hpBonus = 0;
   let stressBonus = 0;
-  let evasionBonus = 0;
+  let evasionBonus = c.evasionBonus || 0;
   // Ancestry bonuses
   if (hasAncestryFeature(c, "Giant",  0)) hpBonus      += 1; // Endurance (feat 0)
   if (hasAncestryFeature(c, "Human",  0)) stressBonus  += 1; // High Stamina (feat 0)
@@ -199,13 +589,14 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   // Threshold bonuses
   let thresholdBonus = 0;
   // Proficiency bonus (needed for Galapa Shell feature and Guardian/Stalwart subclass)
-  const prof = c.level <= 1 ? 1 : c.level <= 4 ? 2 : c.level <= 7 ? 3 : 4;
+  const baseProf = c.level <= 1 ? 1 : c.level <= 4 ? 2 : c.level <= 7 ? 3 : 4;
+  const prof = baseProf + (c.profBonus || 0);
   if (hasAncestryFeature(c, "Galapa", 0)) thresholdBonus += prof; // Shell: +Prof to both thresholds
-  // Guardian/Stalwart subclass bonuses (based on level tiers)
+  // Guardian/Stalwart subclass bonuses (gated by subclassLevel)
   if (c.className === "Guardian" && c.subclass === "Stalwart") {
-    if (c.level >= 1) thresholdBonus += 1;  // Foundation: Unwavering +1
-    if (c.level >= 5) thresholdBonus += 1;  // Specialization: Unrelenting +2 total
-    if (c.level >= 8) thresholdBonus += 1;  // Mastery: Undaunted +3 total
+    if (subclassLevel >= 1) thresholdBonus += 1;  // Foundation: Unwavering +1
+    if (subclassLevel >= 2) thresholdBonus += 1;  // Specialization: Unrelenting +2 total
+    if (subclassLevel >= 3) thresholdBonus += 1;  // Mastery: Undaunted +3 total
   }
 
   // ── Gear references (needed early for trait modifiers) ──────────────
@@ -376,7 +767,18 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   // ── Incomplete-indicator logic ────────────────────────────
   const traitsIncomplete = JSON.stringify(TRAIT_KEYS.map(t => c.traits[t]).sort((a,b) => a-b)) !== JSON.stringify([-1,0,0,1,1,2]);
   const glowingTabs = new Set();
-  const maxLoadout = (c.className === "Wizard" && c.subclass === "School of Knowledge") ? 3 : 2;
+  const startingCards = (c.className === "Wizard" && c.subclass === "School of Knowledge") ? 3 : 2;
+  const earnedCards   = startingCards + Object.keys(c.levelUps || {}).length;
+  const handMax       = 5;
+  const hasVaultOverflow = earnedCards > handMax;
+  const maxLoadout    = Math.min(earnedCards, handMax);
+  const allExps = [
+    { key: "exp1", valKey: "exp1Val" },
+    { key: "exp2", valKey: "exp2Val" },
+    ...(c.level >= 2 ? [{ key: "exp3", valKey: "exp3Val" }] : []),
+    ...(c.level >= 5 ? [{ key: "exp4", valKey: "exp4Val" }] : []),
+    ...(c.level >= 8 ? [{ key: "exp5", valKey: "exp5Val" }] : []),
+  ];
   if (!c.className || !c.subclass)                                        glowingTabs.add("Class");
   if (!c.ancestry)                                                         glowingTabs.add("Heritage");
   if (!c.primaryWeapon)                                                    glowingTabs.add("Gear");
@@ -492,6 +894,9 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           onClose={() => setTraitModalOpen(false)}
         />;
       })()}
+
+      {/* ═══ LEVEL UP MODAL ═══ */}
+      {levelUpOpen && <LevelUpModal c={c} onConfirm={applyLevelUp} onClose={() => setLevelUpOpen(false)} />}
 
       {/* ═══ REST RESULTS ═══ */}
       {restResults && (
@@ -810,7 +1215,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               <span style={{ fontSize: 10, color: P.textMuted, fontWeight: 700 }}>LVL</span>
               <button onClick={() => u("level", Math.max(1, c.level - 1))} style={{ ...sBtn, width: 22, height: 22 }}>−</button>
               <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, minWidth: 20, textAlign: "center" }}>{c.level}</span>
-              <button onClick={() => u("level", Math.min(10, c.level + 1))} style={{ ...sBtn, width: 22, height: 22 }}>+</button>
+              <button onClick={handleOpenLevelUp} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${c.level >= 10 ? P.border : P.accent}`, background: c.level >= 10 ? P.surface : P.accent + "22", color: c.level >= 10 ? P.textMuted : P.accent, cursor: c.level >= 10 ? "default" : "pointer", fontFamily: "inherit", fontWeight: 700 }}>{c.level >= 10 ? "Max" : "▲"}</button>
               {cls && <button onClick={() => setC(p => ({ ...p, traits: { ...cls.suggestedTraits } }))} style={{ marginLeft: "auto", fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.accent, cursor: "pointer", fontFamily: "inherit" }}>Suggested Traits</button>}
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
@@ -1346,13 +1751,13 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <Lbl style={{ marginBottom: 0 }}>Experiences</Lbl>
-              <button onClick={() => setEditExp(!editExp)} className={!editExp && (!c.exp1 || !c.exp2) ? "btn-pulse" : ""} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editExp ? P.accent : P.surface, color: editExp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit" }}>{editExp ? "Done" : "Edit"}</button>
+              <button onClick={() => setEditExp(!editExp)} className={!editExp && allExps.some(e => !c[e.key]) ? "btn-pulse" : ""} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editExp ? P.accent : P.surface, color: editExp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit" }}>{editExp ? "Done" : "Edit"}</button>
             </div>
             <div style={{ fontSize: 10, color: P.textMuted, marginBottom: 8 }}>Spend a Hope to add modifier to a roll</div>
             {editExp ? (
               <>
-                {[["exp1", "exp1Val"], ["exp2", "exp2Val"]].map(([ek, vk], i) => (
-                  <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                {allExps.map(({ key: ek, valKey: vk }, i) => (
+                  <div key={ek} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
                     <Inp value={c[ek]} onChange={v => u(ek, v)} placeholder={`Experience ${i + 1}...`} style={{ flex: 1, fontSize: 13, padding: "6px 10px" }} />
                     <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                       <button onClick={() => u(vk, Math.max(0, c[vk] - 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>−</button>
@@ -1364,11 +1769,11 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               </>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {[["exp1", "exp1Val"], ["exp2", "exp2Val"]].map(([ek, vk], i) => (
-                  c[ek] ? <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: P.surface, borderRadius: 6, border: `1px solid ${P.border}` }}>
+                {allExps.map(({ key: ek, valKey: vk }, i) => (
+                  c[ek] ? <div key={ek} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: P.surface, borderRadius: 6, border: `1px solid ${P.border}` }}>
                     <span style={{ fontSize: 13, fontWeight: 600 }}>{c[ek]}</span>
                     <span style={{ fontSize: 14, fontWeight: 800, color: P.accent, fontFamily: mono }}>+{c[vk]}</span>
-                  </div> : <div key={i} style={{ fontSize: 12, color: P.textMuted, fontStyle: "italic", padding: "6px 10px" }}>Tap Edit to set Experience {i + 1}</div>
+                  </div> : <div key={ek} style={{ fontSize: 12, color: P.textMuted, fontStyle: "italic", padding: "6px 10px" }}>Tap Edit to set Experience {i + 1}</div>
                 ))}
               </div>
             )}
@@ -1475,14 +1880,14 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               });
             }
 
-            // Subclass features (level-gated)
+            // Subclass features (subclassLevel-gated)
             if (sub) {
               [
-                { text: sub.foundation,     minLevel: 1, tier: "Foundation" },
-                { text: sub.specialization, minLevel: 5, tier: "Specialization" },
-                { text: sub.mastery,        minLevel: 8, tier: "Mastery" },
-              ].forEach(({ text, minLevel, tier }) => {
-                if (!text || c.level < minLevel) return;
+                { text: sub.foundation,     minSubLv: 1, tier: "Foundation" },
+                { text: sub.specialization, minSubLv: 2, tier: "Specialization" },
+                { text: sub.mastery,        minSubLv: 3, tier: "Mastery" },
+              ].forEach(({ text, minSubLv, tier }) => {
+                if (!text || subclassLevel < minSubLv) return;
                 const ci = text.indexOf(":");
                 passives.push({
                   source: `${c.subclass} · ${tier}`,
@@ -1902,21 +2307,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           const typeColor = { Ability: P.accent, Spell: "#a855f7", Grimoire: "#3b82f6" };
           const selCount = c.selectedCards.length;
 
-          // FUTURE EXPANSION: Domain card progression by level:
-          //   Level 1: 2 earned cards (3 for Wizard/School of Knowledge)
-          //   Level 2+: +1 card per level (so level 2 = 3 cards, level 3 = 4, level 4 = 5)
-          //   Hand max: 5 cards (constant per rules)
-          //   Vault overflow begins at level 5 (6 earned cards, 5 max hand)
-          //   Card swapping on rest is only available when vault overflow exists (level >= 5).
-          //
-          // maxLoadout below reflects ONLY the level-1 starting loadout.
-          // When a level-up system is added, replace with:
-          //   const earnedCards = 1 + (c.level - 1) + (classBonus);
-          //   const handMax = 5;
-          //   const hasVaultOverflow = earnedCards > handMax;
-          //
-          // School of Knowledge Wizard: 'Prepared' foundation grants an extra card at creation
-          const maxLoadout = (c.className === "Wizard" && c.subclass === "School of Knowledge") ? 3 : 2;
+          // earnedCards/maxLoadout derived from outer scope (updated by levelUps)
           const isConfirmed = !!c.cardsConfirmed;
           const isFull = selCount >= maxLoadout;
           const isEditing = !isConfirmed;
@@ -1994,7 +2385,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               <div key={domain}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: 4 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: DOMAIN_COLORS[domain] || P.accent }} />
-                  <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain — Level 1</Lbl>
+                  <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain</Lbl>
                 </div>
                 {(DOMAIN_CARDS[domain] || []).map(card => renderCard(domain, card))}
               </div>
@@ -2012,7 +2403,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                   <div key={domain}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: 4 }}>
                       <div style={{ width: 10, height: 10, borderRadius: "50%", background: DOMAIN_COLORS[domain] || P.accent }} />
-                      <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain — Level 1</Lbl>
+                      <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain</Lbl>
                     </div>
                     {domainSelectedCards.map(card => renderCard(domain, card, { isReadOnly: true }))}
                   </div>
@@ -2056,7 +2447,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                           <div key={domain}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: 4 }}>
                               <div style={{ width: 10, height: 10, borderRadius: "50%", background: DOMAIN_COLORS[domain] || P.accent }} />
-                              <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain — Level 1</Lbl>
+                              <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain</Lbl>
                             </div>
                             {cards.map(card => renderCard(domain, card, { isReadOnly: true, dimmed: true }))}
                           </div>

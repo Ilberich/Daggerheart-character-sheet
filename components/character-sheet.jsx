@@ -4,6 +4,12 @@
 const ADV_MAX  = { traits: 3, hp: 2, stress: 2, exp: 1, card: 1, evasion: 1, subclass: 1, proficiency: 1, multiclass: 1 };
 const ADV_COST = { traits: 1, hp: 1, stress: 1, exp: 1, card: 1, evasion: 1, subclass: 1, proficiency: 2, multiclass: 2 };
 
+// getTrait: effective trait value = baseTraits (creation) + traitIncreases (leveling)
+// Falls back to legacy `traits` field for characters saved before this refactor.
+const getTrait = (c, t) =>
+  (c.baseTraits ? (c.baseTraits[t] ?? 0) : (c.traits?.[t] ?? 0))
+  + (c.traitIncreases?.[t] ?? 0);
+
 function advTierKey(lvl) { return lvl <= 4 ? "tier2" : lvl <= 7 ? "tier3" : "tier4"; }
 function advAccessibleTiers(lvl) {
   if (lvl <= 4) return ["tier2"];
@@ -262,7 +268,7 @@ function LevelUpModal({ c, onConfirm, onClose }) {
             {TRAIT_KEYS.map(t => {
               const isMarked   = !!effectiveMarks[t];
               const isSelected = tempTraits.includes(t);
-              const curVal     = c.traits[t] || 0;
+              const curVal     = getTrait(c, t);
               return (
                 <div key={t} onClick={() => {
                   if (isMarked) return;
@@ -515,7 +521,6 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [traitModalOpen, setTraitModalOpen] = useState(false);
   const [levelUpOpen, setLevelUpOpen] = useState(false);
   const u = useCallback((k, v) => setC(p => ({ ...p, [k]: v })), [setC]);
-  const uT = useCallback((t, v) => setC(p => ({ ...p, traits: { ...p.traits, [t]: v } })), [setC]);
   const tog = useCallback((k, i) => setC(p => { const a = [...p[k]]; a[i] = !a[i]; return { ...p, [k]: a }; }), [setC]);
   const toggleRestChoice = useCallback((id) => {
     setRestChoices(prev => {
@@ -539,10 +544,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
         const t = pick.fromTier;
         au[t][pick.type] = (au[t][pick.type] || 0) + 1;
         if (pick.type === "traits") {
-          const traits = { ...next.traits };
-          const marks  = { ...(next.traitMarks || prev.traitMarks || {}) };
-          for (const tr of pick.traits) { traits[tr] = (traits[tr] || 0) + 1; marks[tr] = true; }
-          next.traits = traits; next.traitMarks = marks;
+          const inc   = { ...(next.traitIncreases ?? prev.traitIncreases ?? {}) };
+          const marks = { ...(next.traitMarks || prev.traitMarks || {}) };
+          for (const tr of pick.traits) { inc[tr] = (inc[tr] || 0) + 1; marks[tr] = true; }
+          next.traitIncreases = inc; next.traitMarks = marks;
         }
         if (pick.type === "hp")          next.hp = [...(next.hp || prev.hp), false];
         if (pick.type === "stress")      next.stress = [...(next.stress || prev.stress), false];
@@ -562,6 +567,61 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
       return next;
     });
     setLevelUpOpen(false);
+  };
+
+  const handleLevelDown = () => {
+    setC(prev => {
+      const currentLevel = prev.level;
+      if (currentLevel <= 1) return prev;
+
+      const next = { ...prev, level: currentLevel - 1 };
+      const entry = prev.levelUps?.[String(currentLevel)];
+
+      if (entry?.choices?.length) {
+        const au = JSON.parse(JSON.stringify(prev.advUsed || { tier2: {}, tier3: {}, tier4: {} }));
+
+        for (const pick of entry.choices) {
+          const t = pick.fromTier;
+          au[t][pick.type] = Math.max(0, (au[t][pick.type] || 0) - 1);
+
+          if (pick.type === "traits") {
+            const inc = { ...(next.traitIncreases ?? prev.traitIncreases ?? {}) };
+            for (const tr of (pick.traits || [])) { inc[tr] = (inc[tr] || 0) - 1; }
+            next.traitIncreases = inc;
+          }
+          if (pick.type === "hp")          { const hp = [...(next.hp ?? prev.hp)]; hp.pop(); next.hp = hp; }
+          if (pick.type === "stress")      { const stress = [...(next.stress ?? prev.stress)]; stress.pop(); next.stress = stress; }
+          if (pick.type === "exp")         { for (const k of (pick.keys || [])) next[k] = ((next[k] !== undefined ? next[k] : prev[k]) || 2) - 1; }
+          if (pick.type === "evasion")     next.evasionBonus = ((next.evasionBonus !== undefined ? next.evasionBonus : prev.evasionBonus) || 0) - 1;
+          if (pick.type === "subclass")    next.subclassLevel = Math.max(1, ((next.subclassLevel !== undefined ? next.subclassLevel : prev.subclassLevel) || 1) - 1);
+          if (pick.type === "proficiency") next.profBonus = ((next.profBonus !== undefined ? next.profBonus : prev.profBonus) || 0) - 1;
+        }
+
+        next.advUsed = au;
+      }
+
+      const levelUps = { ...(prev.levelUps || {}) };
+      delete levelUps[String(currentLevel)];
+      next.levelUps = levelUps;
+
+      // Recompute traitMarks by scanning remaining levelUps in the current tier
+      const newLevel = next.level;
+      const tierStart = newLevel >= 8 ? 8 : newLevel >= 5 ? 5 : newLevel >= 2 ? 2 : null;
+      const freshMarks = { Agility: false, Strength: false, Finesse: false, Instinct: false, Presence: false, Knowledge: false };
+      if (tierStart !== null) {
+        for (let lvl = tierStart; lvl <= newLevel; lvl++) {
+          const lvlEntry = next.levelUps[String(lvl)];
+          if (lvlEntry?.choices) {
+            for (const pick of lvlEntry.choices) {
+              if (pick.type === "traits") { for (const tr of (pick.traits || [])) freshMarks[tr] = true; }
+            }
+          }
+        }
+      }
+      next.traitMarks = freshMarks;
+
+      return next;
+    });
   };
 
   const handleOpenLevelUp = () => {
@@ -612,7 +672,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   // Effective traits = base traits + all equipment modifiers
   const traitMods = { Agility: armorAgiPen, Strength: 0, Finesse: weaponFinPen, Instinct: 0, Presence: 0, Knowledge: 0 };
   const effTraits = {};
-  TRAIT_KEYS.forEach(t => { effTraits[t] = (c.traits[t] || 0) + traitMods[t]; });
+  TRAIT_KEYS.forEach(t => { effTraits[t] = getTrait(c, t) + traitMods[t]; });
 
   // ── Domain card flags ────────────────────────────────────────────────
   const selectedCards = c.selectedCards || [];
@@ -767,7 +827,8 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const tabs = ["Play", ...(c.subclass === "Beastbound" ? ["Companion"] : []), "Domains", "Class", "Heritage", "Gear", "Notes"];
 
   // ── Incomplete-indicator logic ────────────────────────────
-  const traitsIncomplete = JSON.stringify(TRAIT_KEYS.map(t => c.traits[t]).sort((a,b) => a-b)) !== JSON.stringify([-1,0,0,1,1,2]);
+  const bt = c.baseTraits ?? c.traits ?? {};
+  const traitsIncomplete = JSON.stringify(TRAIT_KEYS.map(t => bt[t] ?? 0).sort((a,b) => a-b)) !== JSON.stringify([-1,0,0,1,1,2]);
   const glowingTabs = new Set();
   const startingCards = (c.className === "Wizard" && c.subclass === "School of Knowledge") ? 3 : 2;
   const earnedCards   = startingCards + Object.keys(c.levelUps || {}).length;
@@ -889,10 +950,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
         ];
         // Draft state lives inside this IIFE render — we lift it into a child component so it has its own useState
         return <TraitModal
-          currentTraits={c.traits}
+          currentTraits={c.baseTraits ?? c.traits ?? {}}
           suggestedTraits={CLASSES[c.className]?.suggestedTraits}
           pool={POOL}
-          onConfirm={traits => { setC(p => ({ ...p, traits })); setTraitModalOpen(false); }}
+          onConfirm={baseTraits => { setC(p => ({ ...p, baseTraits })); setTraitModalOpen(false); }}
           onClose={() => setTraitModalOpen(false)}
         />;
       })()}
@@ -1047,7 +1108,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               next.prayerDice = [];
               // Brawler Martial Artist: roll Focus on rest
               if (next.className === "Brawler" && next.subclass === "Martial Artist") {
-                const instinct = Math.max(1, next.traits?.Instinct || 0);
+                const instinct = Math.max(1, getTrait(next, "Instinct"));
                 const focusDice = Array.from({ length: instinct }, () => Math.floor(Math.random() * 6) + 1);
                 next.focusTokens = Math.max(...focusDice);
               }
@@ -1215,10 +1276,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             <div style={{ display: "flex", gap: 8 }}><Inp value={c.name} onChange={v => u("name", v)} placeholder="Name" style={{ flex: 2 }} /><Inp value={c.pronouns} onChange={v => u("pronouns", v)} placeholder="Pronouns" style={{ flex: 1 }} /></div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <span style={{ fontSize: 10, color: P.textMuted, fontWeight: 700 }}>LVL</span>
-              <button onClick={() => u("level", Math.max(1, c.level - 1))} style={{ ...sBtn, width: 22, height: 22 }}>−</button>
+              <button onClick={handleLevelDown} style={{ ...sBtn, width: 22, height: 22 }}>−</button>
               <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, minWidth: 20, textAlign: "center" }}>{c.level}</span>
               <button onClick={handleOpenLevelUp} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${c.level >= 10 ? P.border : P.accent}`, background: c.level >= 10 ? P.surface : P.accent + "22", color: c.level >= 10 ? P.textMuted : P.accent, cursor: c.level >= 10 ? "default" : "pointer", fontFamily: "inherit", fontWeight: 700 }}>{c.level >= 10 ? "Max" : "▲"}</button>
-              {cls && <button onClick={() => setC(p => ({ ...p, traits: { ...cls.suggestedTraits } }))} style={{ marginLeft: "auto", fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.accent, cursor: "pointer", fontFamily: "inherit" }}>Suggested Traits</button>}
+              {cls && <button onClick={() => setC(p => ({ ...p, baseTraits: { ...cls.suggestedTraits } }))} style={{ marginLeft: "auto", fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.accent, cursor: "pointer", fontFamily: "inherit" }}>Suggested Traits</button>}
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
               <Lbl style={{ marginBottom: 0 }}>Traits</Lbl>
@@ -1228,7 +1289,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               {TRAIT_KEYS.map(t => (
                 <div key={t} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: P.surface, borderRadius: 6, padding: "5px 8px" }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: P.textMuted }}>{TRAIT_SHORT[t]}</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: c.traits[t] > 0 ? P.hp : c.traits[t] < 0 ? P.fear : P.textMuted }}>{fmtMod(c.traits[t])}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: getTrait(c, t) > 0 ? P.hp : getTrait(c, t) < 0 ? P.fear : P.textMuted }}>{fmtMod(getTrait(c, t))}</span>
                 </div>
               ))}
             </div>
@@ -1268,7 +1329,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             {/* Trait bar — shows effective traits (base + equipment modifiers) */}
             <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
               {TRAIT_KEYS.map(t => {
-                const base = c.traits[t] || 0;
+                const base = getTrait(c, t);
                 const mod  = traitMods[t] || 0;
                 const eff  = effTraits[t];
                 return (
@@ -1492,7 +1553,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             // ── SERAPH ────────────────────────────────────────
             if (c.className === "Seraph") {
               const spellcastTrait = sub?.spellcast || "Strength";
-              const traitVal = Math.max(1, c.traits[spellcastTrait] || 0);
+              const traitVal = Math.max(1, getTrait(c, spellcastTrait));
               const dice = c.prayerDice || [];
               resources.push(
                 <div key="prayer" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
@@ -1713,7 +1774,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 <CooldownBtn key="limbreak" label="Limit Breaker" used={c.limitBreakerUsed || false} onToggle={() => u("limitBreakerUsed", !(c.limitBreakerUsed || false))} recharge="Long rest" />
               );
               if (c.subclass === "Martial Artist") {
-                const instinct = Math.max(1, c.traits?.Instinct || 0);
+                const instinct = Math.max(1, getTrait(c, "Instinct"));
                 resources.push(
                   <div key="focus" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2287,10 +2348,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
         {/* ═══ GEAR TAB ═══ */}
         {tab === "Gear" && <>
           <Card><Lbl>Primary Weapon</Lbl><Sel className={!c.primaryWeapon ? "btn-pulse" : ""} value={c.primaryWeapon} onChange={v => u("primaryWeapon", v)}><option value="">— Select —</option><optgroup label="Physical">{WEAPONS_PRIMARY.filter(w => w.type === "phy").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup><optgroup label="Magic (Spellcast)">{WEAPONS_PRIMARY.filter(w => w.type === "mag").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup></Sel>
-            {pw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{pw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{pw.trait} ({fmtMod(c.traits[pw.trait] || 0)}) | {pw.range} | {prof}{pw.damage} {pw.type} | {pw.burden}</div>{pw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{pw.feature}</div>}</div>}
+            {pw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{pw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{pw.trait} ({fmtMod(getTrait(c, pw.trait))}) | {pw.range} | {prof}{pw.damage} {pw.type} | {pw.burden}</div>{pw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{pw.feature}</div>}</div>}
           </Card>
           <Card><Lbl>Secondary Weapon</Lbl><Sel value={c.secondaryWeapon} onChange={v => u("secondaryWeapon", v)}><option value="">— None —</option>{WEAPONS_SECONDARY.map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage}</option>)}</Sel>
-            {sw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{sw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{sw.trait} ({fmtMod(c.traits[sw.trait] || 0)}) | {sw.range} | {prof}{sw.damage} {sw.type} | {sw.burden}</div>{sw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{sw.feature}</div>}</div>}
+            {sw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{sw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{sw.trait} ({fmtMod(getTrait(c, sw.trait))}) | {sw.range} | {prof}{sw.damage} {sw.type} | {sw.burden}</div>{sw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{sw.feature}</div>}</div>}
           </Card>
           <Card><Lbl>Armor</Lbl><Sel value={c.armor} onChange={v => u("armor", v)}><option value="">— Select —</option>{ARMOR.map(a => <option key={a.name} value={a.name}>{a.name} — {a.thresholds} | Score {a.score}</option>)}</Sel>
             {sA && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{sA.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>Base: {sA.thresholds} → Lv{c.level}: {mT}/{sT} | Score: {sA.score}</div>{sA.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{sA.feature}</div>}</div>}

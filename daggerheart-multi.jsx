@@ -316,6 +316,9 @@ const ARMOR = [
 
 const TRAIT_KEYS = ["Agility", "Strength", "Finesse", "Instinct", "Presence", "Knowledge"];
 const TRAIT_SHORT = { Agility: "AGI", Strength: "STR", Finesse: "FIN", Instinct: "INS", Presence: "PRE", Knowledge: "KNO" };
+const getTrait = (c, t) =>
+  (c.baseTraits ? (c.baseTraits[t] ?? 0) : (c.traits?.[t] ?? 0))
+  + (c.traitIncreases?.[t] ?? 0);
 const TRAIT_ACTIONS = { Agility: "Sprint, Leap, Maneuver", Strength: "Lift, Smash, Grapple", Finesse: "Control, Hide, Tinker", Instinct: "Perceive, Sense, Navigate", Presence: "Charm, Perform, Deceive", Knowledge: "Recall, Analyze, Comprehend" };
 
 const P = { bg: "#0d0f14", surface: "#161922", card: "#1c2030", cardHover: "#232840", border: "#2a3050", borderActive: "#6366f1", text: "#e2e4f0", textMuted: "#8890b0", accent: "#6366f1", accentGlow: "rgba(99,102,241,0.25)", hope: "#facc15", fear: "#ef4444", hp: "#22c55e", stress: "#f97316", gold: "#fbbf24" };
@@ -602,7 +605,7 @@ function DaggerheartSheet({ c, setC, onBack }) {
   const [swapCardsOnRest, setSwapCardsOnRest] = useState(false);
   const [cardSwapOpen, setCardSwapOpen] = useState(false);
   const u = useCallback((k, v) => setC(p => ({ ...p, [k]: v })), [setC]);
-  const uT = useCallback((t, v) => setC(p => ({ ...p, traits: { ...p.traits, [t]: v } })), [setC]);
+  const uT = useCallback((t, v) => setC(p => ({ ...p, baseTraits: { ...(p.baseTraits ?? p.traits), [t]: v } })), [setC]);
   const tog = useCallback((k, i) => setC(p => { const a = [...p[k]]; a[i] = !a[i]; return { ...p, [k]: a }; }), [setC]);
   const toggleRestChoice = useCallback((id) => {
     setRestChoices(prev => {
@@ -644,23 +647,23 @@ function DaggerheartSheet({ c, setC, onBack }) {
   const pw = WEAPONS_PRIMARY.find(x => x.name === c.primaryWeapon);
   const sw = WEAPONS_SECONDARY.find(x => x.name === c.secondaryWeapon);
   if (pw) {
-    const mod = c.traits[pw.trait] || 0;
+    const mod = getTrait(c, pw.trait);
     const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
     actions.push({ label: pw.name, detail: `${pw.trait} ${modStr} | ${pw.range} | ${prof}${pw.damage} ${pw.type}`, sub: pw.feature, type: "primary" });
   }
   if (sw) {
-    const mod = c.traits[sw.trait] || 0;
+    const mod = getTrait(c, sw.trait);
     const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
     actions.push({ label: sw.name, detail: `${sw.trait} ${modStr} | ${sw.range} | ${prof}${sw.damage} ${sw.type}`, sub: sw.feature, type: "secondary" });
   }
   if (sub && sub.spellcast) {
-    const mod = c.traits[sub.spellcast] || 0;
+    const mod = getTrait(c, sub.spellcast);
     const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
     actions.push({ label: "Spellcast", detail: `${sub.spellcast} ${modStr}`, sub: "", type: "spell" });
   }
   // Common trait actions
   TRAIT_KEYS.forEach(t => {
-    const v = c.traits[t]; const d = v >= 0 ? `+${v}` : `${v}`;
+    const v = getTrait(c, t); const d = v >= 0 ? `+${v}` : `${v}`;
     actions.push({ label: `${t} Roll`, detail: d, sub: TRAIT_ACTIONS[t], type: "trait" });
   });
 
@@ -1035,16 +1038,16 @@ function DaggerheartSheet({ c, setC, onBack }) {
               <button onClick={() => u("level", Math.max(1, c.level - 1))} style={{ ...sBtn, width: 22, height: 22 }}>−</button>
               <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, minWidth: 20, textAlign: "center" }}>{c.level}</span>
               <button onClick={() => u("level", Math.min(10, c.level + 1))} style={{ ...sBtn, width: 22, height: 22 }}>+</button>
-              {cls && <button onClick={() => setC(p => ({ ...p, traits: { ...cls.suggestedTraits } }))} style={{ marginLeft: "auto", fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.accent, cursor: "pointer", fontFamily: "inherit" }}>Suggested Traits</button>}
+              {cls && <button onClick={() => setC(p => ({ ...p, baseTraits: { ...cls.suggestedTraits } }))} style={{ marginLeft: "auto", fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.accent, cursor: "pointer", fontFamily: "inherit" }}>Suggested Traits</button>}
             </div>
             <Lbl style={{ marginTop: 4, marginBottom: 0 }}>Traits (distribute +2, +1, +1, 0, 0, −1)</Lbl>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
               {TRAIT_KEYS.map(t => (
                 <div key={t} style={{ display: "flex", alignItems: "center", gap: 4, background: P.surface, borderRadius: 6, padding: "4px 6px" }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: P.textMuted, minWidth: 28 }}>{TRAIT_SHORT[t]}</span>
-                  <button onClick={() => uT(t, Math.max(-3, c.traits[t] - 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>−</button>
-                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: c.traits[t] > 0 ? P.hp : c.traits[t] < 0 ? P.fear : P.textMuted, minWidth: 22, textAlign: "center" }}>{fmtMod(c.traits[t])}</span>
-                  <button onClick={() => uT(t, Math.min(5, c.traits[t] + 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>+</button>
+                  <button onClick={() => uT(t, Math.max(-3, getTrait(c, t) - 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>−</button>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: mono, color: getTrait(c, t) > 0 ? P.hp : getTrait(c, t) < 0 ? P.fear : P.textMuted, minWidth: 22, textAlign: "center" }}>{fmtMod(getTrait(c, t))}</span>
+                  <button onClick={() => uT(t, Math.min(5, getTrait(c, t) + 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>+</button>
                 </div>
               ))}
             </div>
@@ -1061,7 +1064,7 @@ function DaggerheartSheet({ c, setC, onBack }) {
               {TRAIT_KEYS.map(t => (
                 <div key={t} style={{ fontSize: 11, color: P.textMuted }}>
                   <span style={{ fontWeight: 700, fontSize: 10 }}>{TRAIT_SHORT[t]}</span>{" "}
-                  <span style={{ fontWeight: 800, fontFamily: mono, color: c.traits[t] > 0 ? P.hp : c.traits[t] < 0 ? P.fear : P.textMuted }}>{fmtMod(c.traits[t])}</span>
+                  <span style={{ fontWeight: 800, fontFamily: mono, color: getTrait(c, t) > 0 ? P.hp : getTrait(c, t) < 0 ? P.fear : P.textMuted }}>{fmtMod(getTrait(c, t))}</span>
                 </div>
               ))}
             </div>
@@ -1401,10 +1404,10 @@ function DaggerheartSheet({ c, setC, onBack }) {
         {/* ═══ GEAR TAB ═══ */}
         {tab === "Gear" && <>
           <Card><Lbl>Primary Weapon</Lbl><Sel value={c.primaryWeapon} onChange={v => u("primaryWeapon", v)}><option value="">— Select —</option><optgroup label="Physical">{WEAPONS_PRIMARY.filter(w => w.type === "phy").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup><optgroup label="Magic (Spellcast)">{WEAPONS_PRIMARY.filter(w => w.type === "mag").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup></Sel>
-            {pw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{pw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{pw.trait} ({fmtMod(c.traits[pw.trait] || 0)}) | {pw.range} | {prof}{pw.damage} {pw.type} | {pw.burden}</div>{pw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{pw.feature}</div>}</div>}
+            {pw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{pw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{pw.trait} ({fmtMod(getTrait(c, pw.trait))}) | {pw.range} | {prof}{pw.damage} {pw.type} | {pw.burden}</div>{pw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{pw.feature}</div>}</div>}
           </Card>
           <Card><Lbl>Secondary Weapon</Lbl><Sel value={c.secondaryWeapon} onChange={v => u("secondaryWeapon", v)}><option value="">— None —</option>{WEAPONS_SECONDARY.map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage}</option>)}</Sel>
-            {sw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{sw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{sw.trait} ({fmtMod(c.traits[sw.trait] || 0)}) | {sw.range} | {prof}{sw.damage} {sw.type} | {sw.burden}</div>{sw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{sw.feature}</div>}</div>}
+            {sw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{sw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{sw.trait} ({fmtMod(getTrait(c, sw.trait))}) | {sw.range} | {prof}{sw.damage} {sw.type} | {sw.burden}</div>{sw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{sw.feature}</div>}</div>}
           </Card>
           <Card><Lbl>Armor</Lbl><Sel value={c.armor} onChange={v => u("armor", v)}><option value="">— Select —</option>{ARMOR.map(a => <option key={a.name} value={a.name}>{a.name} — {a.thresholds} | Score {a.score}</option>)}</Sel>
             {sA && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{sA.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>Base: {sA.thresholds} → Lv{c.level}: {mT}/{sT} | Score: {sA.score}</div>{sA.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{sA.feature}</div>}</div>}

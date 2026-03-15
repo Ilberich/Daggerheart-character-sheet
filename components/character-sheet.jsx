@@ -621,8 +621,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   // Bone::Untouchable — passive Evasion bonus = ½ effective Agility (rounded down)
   if (hasUntouchable) evasionBonus += Math.floor(effTraits.Agility / 2);
 
-  const maxHp     = (cls ? cls.hp : 6) + hpBonus;
-  const maxStress = 6 + stressBonus;
+  const hpFromLevelUp     = Object.values(c.advUsed || {}).reduce((sum, t) => sum + (t.hp     || 0), 0);
+  const stressFromLevelUp = Object.values(c.advUsed || {}).reduce((sum, t) => sum + (t.stress || 0), 0);
+  const maxHp     = (cls ? cls.hp : 6) + hpBonus     + hpFromLevelUp;
+  const maxStress = 6                  + stressBonus  + stressFromLevelUp;
   const baseEv = cls ? cls.evasion : 10;
 
   // ── Damage thresholds ────────────────────────────────────────────────

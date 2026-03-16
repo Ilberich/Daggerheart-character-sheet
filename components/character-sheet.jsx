@@ -184,7 +184,6 @@ function LevelUpModal({ c, onConfirm, onClose }) {
   const isNewTier = [2, 5, 8].includes(newLevel);
   const tierLabel = newLevel <= 4 ? "Tier 2" : newLevel <= 7 ? "Tier 3" : "Tier 4";
   const advUsed = c.advUsed || { tier2: {}, tier3: {}, tier4: {} };
-  const traitMarks = c.traitMarks || {};
 
   const [picks, setPicks] = useState([]);
   const [traitPicker, setTraitPicker] = useState(null); // { tier } when open
@@ -240,11 +239,6 @@ function LevelUpModal({ c, onConfirm, onClose }) {
     setExpPicker(null); setTempExpKeys([]);
   };
 
-  // Effective marks including pending trait picks
-  const effectiveMarks = { ...traitMarks };
-  picks.filter(p => p.type === "traits").forEach(p => {
-    (p.traits || []).forEach(t => { effectiveMarks[t] = true; });
-  });
 
   // Experience slots with a name
   const allExpsLU = [
@@ -259,6 +253,11 @@ function LevelUpModal({ c, onConfirm, onClose }) {
 
   // ── Sub-view: trait picker ──────────────────────────────────────
   if (traitPicker) {
+    const effectiveMarks = {};
+    (c.advUsed?.[traitPicker.tier]?.traitsPicked || []).forEach(t => { effectiveMarks[t] = true; });
+    picks.filter(p => p.type === "traits" && p.fromTier === traitPicker.tier).forEach(p => {
+      (p.traits || []).forEach(t => { effectiveMarks[t] = true; });
+    });
     return (
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 1004, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
         <div style={{ width: "100%", maxWidth: 480, background: P.card, borderRadius: "20px 20px 0 0", padding: 20, paddingBottom: 32, border: `1px solid ${P.border}`, borderBottom: "none" }}>
@@ -537,17 +536,14 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     setC(prev => {
       const next = { ...prev, level: newLevel };
       const au = JSON.parse(JSON.stringify(prev.advUsed || { tier2: {}, tier3: {}, tier4: {} }));
-      if (isNewTier && newLevel >= 5) {
-        next.traitMarks = { Agility: false, Strength: false, Finesse: false, Instinct: false, Presence: false, Knowledge: false };
-      }
       for (const pick of picks) {
         const t = pick.fromTier;
         au[t][pick.type] = (au[t][pick.type] || 0) + 1;
         if (pick.type === "traits") {
-          const inc   = { ...(next.traitIncreases ?? prev.traitIncreases ?? {}) };
-          const marks = { ...(next.traitMarks || prev.traitMarks || {}) };
-          for (const tr of pick.traits) { inc[tr] = (inc[tr] || 0) + 1; marks[tr] = true; }
-          next.traitIncreases = inc; next.traitMarks = marks;
+          const traits = { ...next.traits };
+          for (const tr of pick.traits) { traits[tr] = (traits[tr] || 0) + 1; }
+          next.traits = traits;
+          au[t].traitsPicked = [...(au[t].traitsPicked || []), ...pick.traits];
         }
         if (pick.type === "hp")          next.hp = [...(next.hp || prev.hp), false];
         if (pick.type === "stress")      next.stress = [...(next.stress || prev.stress), false];

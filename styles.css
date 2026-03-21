@@ -1,18 +1,12 @@
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-overflow-scrolling: touch; }
     html, body { height: 100%; background: #0d0f14; overscroll-behavior: none; }
-    body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; -webkit-text-size-adjust: 100%; overscroll-behavior-y: contain; }
     /* iOS safe area bottom padding so content clears home bar */
     #root { min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom, 0px); }
-    /* Prevent text size inflation on iOS */
-    body { -webkit-text-size-adjust: 100%; }
-    /* Smooth scrolling */
-    * { -webkit-overflow-scrolling: touch; }
     /* Hide scrollbars on WebKit but keep scroll */
     ::-webkit-scrollbar { width: 0; height: 0; }
     /* Input / select reset */
     input, textarea, select, button { font-family: inherit; }
-    /* Prevent pull-to-refresh fighting the app scroll */
-    body { overscroll-behavior-y: contain; }
     @keyframes tab-pulse {
       0%, 100% { box-shadow: 0 0 0px 0px rgba(99,102,241,0); }
       50%       { box-shadow: 0 0 8px 3px rgba(99,102,241,0.55); }

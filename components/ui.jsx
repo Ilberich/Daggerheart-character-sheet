@@ -5,7 +5,20 @@ function Card({ children, style, className }) { return <div className={className
 function Lbl({ children, style }) { return <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: P.textMuted, marginBottom: 4, ...style }}>{children}</div>; }
 function Inp({ value, onChange, placeholder, style }) { return <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", ...style }} />; }
 function Sel({ value, onChange, children, className }) { return <select value={value} onChange={e => onChange(e.target.value)} className={className || ""} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238890b0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32 }}>{children}</select>; }
-function Pip({ filled, color, onClick, size = 22 }) { return <div onClick={onClick} style={{ width: size, height: size, borderRadius: size / 2, border: `2px solid ${color}`, background: filled ? color : "transparent", cursor: "pointer", transition: "all .15s", flexShrink: 0 }} />; }
+const PIP_SVG = {
+  heart: "M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151 1.018 5.719 4.955 1.552-3.938 4.391-4.955 5.719-4.955 2.149 0 5.281 1.344 5.281 5.191 0 4.106-5.421 8.862-11 14.402z",
+  star: "M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"
+};
+function Pip({ filled, color, onClick, size = 22, shape = "circle" }) {
+  const svgStyle = { cursor: "pointer", transition: "all .15s", flexShrink: 0, display: "block" };
+  if (shape === "heart" || shape === "star") {
+    return <svg onClick={onClick} width={size} height={size} viewBox="0 0 24 24" style={svgStyle}><path d={PIP_SVG[shape]} fill={filled ? color : "none"} stroke={color} strokeWidth="2" strokeLinejoin="round" /></svg>;
+  }
+  if (shape === "diamond") {
+    return <svg onClick={onClick} width={size} height={size} viewBox="0 0 24 24" style={svgStyle}><polygon points="12,2 22,12 12,22 2,12" fill={filled ? color : "none"} stroke={color} strokeWidth="2" strokeLinejoin="round" /></svg>;
+  }
+  return <div onClick={onClick} style={{ width: size, height: size, borderRadius: size / 2, border: `2px solid ${color}`, background: filled ? color : "transparent", cursor: "pointer", transition: "all .15s", flexShrink: 0 }} />;
+}
 
 function Feat({ title, text, startOpen }) {
   const [open, setOpen] = useState(!!startOpen);

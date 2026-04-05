@@ -9,7 +9,7 @@ function newChar(id) {
     hope: [true, true, false, false, false, false], armorSlots: Array(12).fill(false),
     primaryWeapon: "", secondaryWeapon: "", armor: "",
     exp1: "", exp1Val: 2, exp2: "", exp2Val: 2,
-    inventory: "", goldH: 1, goldB: 0, goldC: 0, notes: "",
+    inventory: "", goldH: 1, goldB: 0, goldC: 0, notes: "", pipShape: "circle",
     selectedCards: [], cardsConfirmed: false,
     // ── Leveling ─────────────────────────────────────────────
     levelUps: {},
@@ -66,7 +66,7 @@ function newChar(id) {
   };
 }
 
-// ── CLASS COLOR MAP ──────────────────────────────────────────
+// ═══ CLASS COLOR MAP ════════════════════════════════════════════
 const CLASS_COLORS = { Bard: "#ec4899", Druid: "#22c55e", Guardian: "#f97316", Ranger: "#84cc16", Rogue: "#a855f7", Seraph: "#facc15", Sorcerer: "#ef4444", Warrior: "#f59e0b", Wizard: "#3b82f6" };
 
 function CharacterSelect({ characters, onSelect, onCreate, onDelete, onImport }) {

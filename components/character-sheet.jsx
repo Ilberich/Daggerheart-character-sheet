@@ -517,6 +517,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [swapCardsOnRest, setSwapCardsOnRest] = useState(false);
   const [cardSwapOpen, setCardSwapOpen] = useState(false);
   const [unchosenCardsOpen, setUnchosenCardsOpen] = useState(false); // collapsible unchosen domain cards section
+  const [classOpen, setClassOpen] = useState(false);
+  const [heritageOpen, setHeritageOpen] = useState(false);
+  const [domainsOpen, setDomainsOpen] = useState(false);
+  const [gearOpen, setGearOpen] = useState(false);
   const [traitModalOpen, setTraitModalOpen] = useState(false);
   const [levelUpOpen, setLevelUpOpen] = useState(false);
   const u = useCallback((k, v) => setC(p => ({ ...p, [k]: v })), [setC]);
@@ -820,7 +824,12 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     actions.push({ label: `${t} Roll`, detail: d, sub: TRAIT_ACTIONS[t], type: "trait" });
   });
 
-  const tabs = ["Play", ...(c.subclass === "Beastbound" ? ["Companion"] : []), "Domains", "Class", "Heritage", "Gear", "Notes"];
+  const tabs = [
+    "Play",
+    ...(c.subclass === "Beastbound" ? ["Companion"] : []),
+    "Character",
+    "Rules/Notes"
+  ];
 
   // ── Incomplete-indicator logic ────────────────────────────
   const bt = c.baseTraits ?? c.traits ?? {};
@@ -838,14 +847,23 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     ...(c.level >= 5 ? [{ key: "exp4", valKey: "exp4Val" }] : []),
     ...(c.level >= 8 ? [{ key: "exp5", valKey: "exp5Val" }] : []),
   ];
-  if (!c.className || !c.subclass)                                        glowingTabs.add("Class");
-  if (!c.ancestry)                                                         glowingTabs.add("Heritage");
-  if (!c.primaryWeapon)                                                    glowingTabs.add("Gear");
-  if (!c.selectedCards || c.selectedCards.length < maxLoadout || !c.cardsConfirmed) glowingTabs.add("Domains");
+  const classIncomplete    = !c.className || !c.subclass;
+  const heritageIncomplete = !c.ancestry;
+  const gearIncomplete     = !c.primaryWeapon;
+  const domainsIncomplete  = !c.selectedCards || c.selectedCards.length < maxLoadout || !c.cardsConfirmed;
+  if (classIncomplete || heritageIncomplete || gearIncomplete || domainsIncomplete) glowingTabs.add("Character");
   if (c.subclass === "Beastbound" && !c.companionName)                     glowingTabs.add("Companion");
   // traitsAllZero check handled inline on the Edit Stats button
 
   const fmtMod = v => v >= 0 ? `+${v}` : `${v}`;
+
+  // Auto-expand incomplete Character tab sections on mount
+  useEffect(() => {
+    if (!c.className || !c.subclass) setClassOpen(true);
+    if (!c.ancestry)                 setHeritageOpen(true);
+    if (!c.selectedCards || c.selectedCards.length < 2 || !c.cardsConfirmed) setDomainsOpen(true);
+    if (!c.primaryWeapon)            setGearOpen(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ minHeight: "100vh", background: P.bg, color: P.text, fontFamily: "'Crimson Pro', 'Georgia', serif", maxWidth: 480, margin: "0 auto" }}>
@@ -2003,8 +2021,18 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           </Card>
         </>}
 
-        {/* ═══ CLASS TAB ═══ */}
-        {tab === "Class" && <>
+        {tab === "Character" && <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* ── CLASS SECTION ── */}
+          <div>
+            <div onClick={() => setClassOpen(v => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: P.card, borderRadius: classOpen ? "12px 12px 0 0" : 12, border: `1px solid ${classIncomplete && !classOpen ? P.accent + "88" : P.border}`, cursor: "pointer", userSelect: "none", boxShadow: classIncomplete && !classOpen ? `0 0 10px ${P.accent}22` : "none", transition: "border-color .15s, box-shadow .15s" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {classIncomplete && <div style={{ width: 7, height: 7, borderRadius: "50%", background: P.accent, boxShadow: `0 0 6px ${P.accent}` }} />}
+                <span style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2, color: classIncomplete ? P.accent : P.text }}>Class</span>
+              </div>
+              <span style={{ fontSize: 14, color: P.textMuted, transform: classOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+            </div>
+            {classOpen && <div style={{ border: `1px solid ${P.border}`, borderTop: "none", borderRadius: "0 0 12px 12px", padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
           {(() => {
             const classItems = Object.keys(CLASSES).map(n => {
               const cl = CLASSES[n];
@@ -2091,10 +2119,19 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
 
                 <Card><Lbl>Starting Items</Lbl><div style={{ fontSize: 12, color: P.textMuted }}>{cls.items}</div></Card>
           </>}
-        </>}
+            </div>}
+          </div>
 
-        {/* ═══ HERITAGE TAB ═══ */}
-        {tab === "Heritage" && <>
+          {/* ── HERITAGE SECTION ── */}
+          <div>
+            <div onClick={() => setHeritageOpen(v => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: P.card, borderRadius: heritageOpen ? "12px 12px 0 0" : 12, border: `1px solid ${heritageIncomplete && !heritageOpen ? P.accent + "88" : P.border}`, cursor: "pointer", userSelect: "none", boxShadow: heritageIncomplete && !heritageOpen ? `0 0 10px ${P.accent}22` : "none", transition: "border-color .15s, box-shadow .15s" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {heritageIncomplete && <div style={{ width: 7, height: 7, borderRadius: "50%", background: P.accent, boxShadow: `0 0 6px ${P.accent}` }} />}
+                <span style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2, color: heritageIncomplete ? P.accent : P.text }}>Heritage</span>
+              </div>
+              <span style={{ fontSize: 14, color: P.textMuted, transform: heritageOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+            </div>
+            {heritageOpen && <div style={{ border: `1px solid ${P.border}`, borderTop: "none", borderRadius: "0 0 12px 12px", padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Ancestry */}
           <Card className={!c.ancestry ? "card-pulse" : ""}>
             {(() => {
@@ -2339,10 +2376,19 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               );
             })()}
           </Card>
-        </>}
+            </div>}
+          </div>
 
-        {/* ═══ GEAR TAB ═══ */}
-        {tab === "Gear" && <>
+          {/* ── GEAR SECTION ── */}
+          <div>
+            <div onClick={() => setGearOpen(v => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: P.card, borderRadius: gearOpen ? "12px 12px 0 0" : 12, border: `1px solid ${gearIncomplete && !gearOpen ? P.accent + "88" : P.border}`, cursor: "pointer", userSelect: "none", boxShadow: gearIncomplete && !gearOpen ? `0 0 10px ${P.accent}22` : "none", transition: "border-color .15s, box-shadow .15s" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {gearIncomplete && <div style={{ width: 7, height: 7, borderRadius: "50%", background: P.accent, boxShadow: `0 0 6px ${P.accent}` }} />}
+                <span style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2, color: gearIncomplete ? P.accent : P.text }}>Gear</span>
+              </div>
+              <span style={{ fontSize: 14, color: P.textMuted, transform: gearOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+            </div>
+            {gearOpen && <div style={{ border: `1px solid ${P.border}`, borderTop: "none", borderRadius: "0 0 12px 12px", padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
           <Card><Lbl>Primary Weapon</Lbl><Sel className={!c.primaryWeapon ? "btn-pulse" : ""} value={c.primaryWeapon} onChange={v => u("primaryWeapon", v)}><option value="">— Select —</option><optgroup label="Physical">{WEAPONS_PRIMARY.filter(w => w.type === "phy").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup><optgroup label="Magic (Spellcast)">{WEAPONS_PRIMARY.filter(w => w.type === "mag").map(w => <option key={w.name} value={w.name}>{w.name} — {w.trait} {w.range} {w.damage} ({w.burden})</option>)}</optgroup></Sel>
             {pw && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{pw.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>{pw.trait} ({fmtMod(getTrait(c, pw.trait))}) | {pw.range} | {prof}{pw.damage} {pw.type} | {pw.burden}</div>{pw.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{pw.feature}</div>}</div>}
           </Card>
@@ -2353,15 +2399,23 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             {sA && <div style={{ marginTop: 8, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}><div style={{ fontSize: 14, fontWeight: 700 }}>{sA.name}</div><div style={{ fontSize: 12, color: P.textMuted, marginTop: 3 }}>Base: {sA.thresholds} → Lv{c.level}: {mT}/{sT} | Score: {sA.score}</div>{sA.feature && <div style={{ fontSize: 11, color: P.accent, marginTop: 3 }}>{sA.feature}</div>}</div>}
           </Card>
           <Card><Lbl>Inventory</Lbl><div style={{ fontSize: 10, color: P.textMuted, marginBottom: 6 }}>Starts with: torch, 50ft rope, basic supplies, handful of gold, Minor Health or Stamina Potion</div><textarea value={c.inventory} onChange={e => u("inventory", e.target.value)} placeholder="Items..." rows={5} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", resize: "vertical" }} /></Card>
-        </>}
+            </div>}
+          </div>
 
-        {/* ═══ NOTES TAB ═══ */}
-
-        {/* ═══ DOMAINS TAB ═══ */}
-        {tab === "Domains" && (() => {
-          if (!c.className) return (
-            <Card><div style={{ fontSize: 13, color: P.textMuted, fontStyle: "italic", textAlign: "center", padding: 16 }}>Choose a class on the Class tab to see your domain cards.</div></Card>
-          );
+          {/* ── DOMAINS SECTION ── */}
+          <div>
+            <div onClick={() => setDomainsOpen(v => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: P.card, borderRadius: domainsOpen ? "12px 12px 0 0" : 12, border: `1px solid ${domainsIncomplete && !domainsOpen ? P.accent + "88" : P.border}`, cursor: "pointer", userSelect: "none", boxShadow: domainsIncomplete && !domainsOpen ? `0 0 10px ${P.accent}22` : "none", transition: "border-color .15s, box-shadow .15s" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {domainsIncomplete && <div style={{ width: 7, height: 7, borderRadius: "50%", background: P.accent, boxShadow: `0 0 6px ${P.accent}` }} />}
+                <span style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.2, color: domainsIncomplete ? P.accent : P.text }}>Domain Cards</span>
+              </div>
+              <span style={{ fontSize: 14, color: P.textMuted, transform: domainsOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+            </div>
+            {domainsOpen && <div style={{ border: `1px solid ${P.border}`, borderTop: "none", borderRadius: "0 0 12px 12px", padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
+              {(() => {
+                if (!c.className) return (
+                  <Card><div style={{ fontSize: 13, color: P.textMuted, fontStyle: "italic", textAlign: "center", padding: 16 }}>Choose a class in the Class section above to see your domain cards.</div></Card>
+                );
           const domains = CLASSES[c.className]?.domains || [];
           const typeColor = { Ability: P.accent, Spell: "#a855f7", Grimoire: "#3b82f6" };
           const selCount = c.selectedCards.length;
@@ -2526,8 +2580,13 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               </button>
             </>}
           </>;
-        })()}
-        {tab === "Notes" && <>
+              })()}
+            </div>}
+          </div>
+
+        </div>}
+
+        {tab === "Rules/Notes" && <>
           <Card><Lbl>Notes & Backstory</Lbl><textarea value={c.notes} onChange={e => u("notes", e.target.value)} placeholder="Background, connections, session notes..." rows={14} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", resize: "vertical", lineHeight: 1.7 }} /></Card>
           <Card><Lbl>Reference</Lbl><Feat title="Action Rolls" text="Roll 2d12 (Hope die + Fear die). Add trait modifier. Hope > Fear = gain Hope. Fear > Hope = GM gains Fear. Compare total to Difficulty." /><Feat title="Downtime" text={"Short Rest: Tend Wounds (1 HP), Clear Stress (up to 3), Repair Armor, Prepare.\nLong Rest: Clear ALL Stress, Repair ALL Armor, Tend ALL Wounds, Work on Project."} /></Card>
           <Card><Lbl>Export</Lbl><div style={{ display: "flex", flexDirection: "column", gap: 8 }}><button onClick={() => { const b = new Blob([JSON.stringify(c, null, 2)], { type: "application/json" }); const x = URL.createObjectURL(b); const a = document.createElement("a"); a.href = x; a.download = `${c.name || "character"}_daggerheart.json`; a.click(); URL.revokeObjectURL(x); }} style={{ width: "100%", padding: "12px", borderRadius: 8, border: `1px solid ${P.borderActive}`, background: P.surface, color: P.accent, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Download JSON</button><button onClick={() => { const body = encodeURIComponent(`**Describe the bug:**\n[A clear description of what went wrong]\n\n**Steps to reproduce:**\n1. \n2. \n\n**Expected behavior:**\n[What you expected to happen]\n\n**Browser & OS:**\n${navigator.userAgent}\n\n**Additional context:**\n[Any other relevant info]`); window.open(`https://github.com/Ilberich/Daggerheart-character-sheet/issues/new?title=Bug+Report&body=${body}`, '_blank'); }} style={{ width: "100%", padding: "12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Report a Bug</button></div></Card>

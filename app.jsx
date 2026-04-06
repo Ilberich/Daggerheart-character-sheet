@@ -51,18 +51,6 @@ function newChar(id) {
     strangePatternNumber: 7,
     // Blood Hunter
     crimsonRiteActive: false, wolfFormActive: false, mutagen: "",
-    // Witch
-    hexActive: false, hexTarget: "", communeUsed: false,
-    talismanExists: false, walkBetweenWorldsTokens: 0, circleOfPowerTokens: 0,
-    moonbeamUsed: false, lunarPhase: 0,
-    // Assassin
-    markedForDeathActive: false, markedForDeathTarget: "", poisonTokens: 0,
-    firstStrikeUsed: false, trueStrikeUsed: false,
-    // Warlock
-    favor: 3, patronSphere1Name: "", patronSphere1Value: 2,
-    patronSphere2Name: "", patronSphere2Value: 2, patronsMantleActive: false,
-    // Brawler
-    comboDieSize: "d4", focusTokens: 0, limitBreakerUsed: false, eyeForAnEyeUsed: false,
   };
 }
 

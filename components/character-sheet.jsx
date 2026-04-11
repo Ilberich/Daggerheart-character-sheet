@@ -134,30 +134,6 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const sub = cls && c.subclass ? cls.subclasses[c.subclass] : null;
   const subclassLevel = c.subclassLevel ?? (c.level >= 8 ? 3 : c.level >= 5 ? 2 : 1);
 
-  // Stat bonuses — all sources accumulate so they always stack
-  let hpBonus = 0;
-  let stressBonus = 0;
-  let evasionBonus = c.evasionBonus || 0;
-  // Ancestry bonuses
-  if (hasAncestryFeature(c, "Giant",  0)) hpBonus      += 1; // Endurance (feat 0)
-  if (hasAncestryFeature(c, "Human",  0)) stressBonus  += 1; // High Stamina (feat 0)
-  if (hasAncestryFeature(c, "Simiah", 1)) evasionBonus += 1; // Nimble (feat 1)
-  // Subclass bonuses
-  if (c.className === "Wizard"   && c.subclass === "School of War") hpBonus     += 1; // Battlemage
-  if (c.className === "Guardian" && c.subclass === "Vengeance")     stressBonus += 1; // At Ease
-  // Threshold bonuses
-  let thresholdBonus = 0;
-  // Proficiency bonus (needed for Galapa Shell feature and Guardian/Stalwart subclass)
-  const baseProf = c.level <= 1 ? 1 : c.level <= 4 ? 2 : c.level <= 7 ? 3 : 4;
-  const prof = baseProf + (c.profBonus || 0);
-  if (hasAncestryFeature(c, "Galapa", 0)) thresholdBonus += prof; // Shell: +Prof to both thresholds
-  // Guardian/Stalwart subclass bonuses (gated by subclassLevel)
-  if (c.className === "Guardian" && c.subclass === "Stalwart") {
-    if (subclassLevel >= 1) thresholdBonus += 1;  // Foundation: Unwavering +1
-    if (subclassLevel >= 2) thresholdBonus += 1;  // Specialization: Unrelenting +2 total
-    if (subclassLevel >= 3) thresholdBonus += 1;  // Mastery: Undaunted +3 total
-  }
-
   // ── Gear references (needed early for trait modifiers) ──────────────
   const pw = WEAPONS_PRIMARY.find(x => x.name === c.primaryWeapon);
   const sw = WEAPONS_SECONDARY.find(x => x.name === c.secondaryWeapon);
@@ -173,12 +149,80 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const effTraits = {};
   TRAIT_KEYS.forEach(t => { effTraits[t] = getTrait(c, t) + traitMods[t]; });
 
-  // ── Domain card flags ────────────────────────────────────────────────
-  const selectedCards = c.selectedCards || [];
-  const hasUntouchable = selectedCards.includes("Bone::Untouchable");
-  const hasBareBones   = selectedCards.includes("Valor::Bare Bones");
-  // Bone::Untouchable — passive Evasion bonus = ½ effective Agility (rounded down)
-  if (hasUntouchable) evasionBonus += Math.floor(effTraits.Agility / 2);
+  // ── Proficiency ───────────────────────────────────────────────────────
+  const baseProf = c.level <= 1 ? 1 : c.level <= 4 ? 2 : c.level <= 7 ? 3 : 4;
+  const prof = baseProf + (c.profBonus || 0);
+
+  // ── Stat bonuses — driven by statEffects in data ──────────────────────
+  let hpBonus            = 0;
+  let stressBonus        = 0;
+  let evasionBonus       = c.evasionBonus || 0;
+  let thresholdBonus     = 0;
+  let severeThresholdBonus = 0;
+  let armorScoreBonus    = 0;
+  let hasBareBones       = false; // set true by { stat:"thresholds", type:"override" } (Bare Bones)
+
+  const selectedCards  = c.selectedCards || [];
+  const hasUntouchable = selectedCards.includes("Bone::Untouchable"); // kept for display badges
+  const isArmored      = !!c.armor;
+
+  // Resolve computed amount strings to numeric values
+  const resolveAmount = (amount) => {
+    if (amount === "proficiency") return prof;
+    if (amount === "halfAgility") return Math.floor(effTraits.Agility / 2);
+    if (amount === "3+strength")  return Math.max(0, 3 + effTraits.Strength);
+    return amount;
+  };
+
+  // Apply a single statEffect object to the bonus accumulators
+  const applyStatEffect = (effect) => {
+    if (effect.playerChoice) {
+      // TODO: Vitality playerChoice — requires UI prompt and stored character choices; skip for now
+      return;
+    }
+    const condOk = !effect.condition ||
+      (effect.condition === "armored"   &&  isArmored) ||
+      (effect.condition === "unarmored" && !isArmored);
+    if (!condOk) return;
+
+    if (effect.type === "override") {
+      // Bare Bones: thresholds use BB_THRESHOLDS table instead of the default level formula
+      if (effect.stat === "thresholds") hasBareBones = true;
+      return;
+    }
+
+    const amt = resolveAmount(effect.amount);
+    switch (effect.stat) {
+      case "hp":              hpBonus              += amt; break;
+      case "stress":          stressBonus          += amt; break;
+      case "evasion":         evasionBonus         += amt; break;
+      case "thresholds":      thresholdBonus       += amt; break;
+      case "severeThreshold": severeThresholdBonus += amt; break;
+      case "armorScore":      armorScoreBonus      += amt; break;
+    }
+  };
+
+  // 1. Ancestry — getActiveAncestryFeatures handles mixed ancestry correctly
+  getActiveAncestryFeatures(c).forEach(feature => {
+    (feature.statEffects || []).forEach(applyStatEffect);
+  });
+
+  // 2. Subclass tiers — apply only tiers the character has unlocked
+  if (sub) {
+    if (subclassLevel >= 1 && sub.foundation?.statEffects)
+      sub.foundation.statEffects.forEach(applyStatEffect);
+    if (subclassLevel >= 2 && sub.specialization?.statEffects)
+      sub.specialization.statEffects.forEach(applyStatEffect);
+    if (subclassLevel >= 3 && sub.mastery?.statEffects)
+      sub.mastery.statEffects.forEach(applyStatEffect);
+  }
+
+  // 3. Domain cards in loadout
+  selectedCards.forEach(key => {
+    const [domain, name] = key.split("::");
+    const card = (DOMAIN_CARDS[domain] || []).find(cd => cd.name === name);
+    (card?.statEffects || []).forEach(applyStatEffect);
+  });
 
   const hpFromLevelUp     = Object.values(c.advUsed || {}).reduce((sum, t) => sum + (t.hp     || 0), 0);
   const stressFromLevelUp = Object.values(c.advUsed || {}).reduce((sum, t) => sum + (t.stress || 0), 0);
@@ -190,16 +234,16 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const bbTier = c.level <= 4 ? 0 : c.level <= 7 ? 1 : c.level <= 10 ? 2 : 3;
   const BB_THRESHOLDS = [[9,19],[11,24],[13,31],[15,38]];
   const mT = sA ? parseInt(sA.thresholds.split("/")[0]) + c.level + thresholdBonus
-           : hasBareBones ? BB_THRESHOLDS[bbTier][0] + c.level + thresholdBonus
+           : hasBareBones ? BB_THRESHOLDS[bbTier][0] + thresholdBonus
            : c.level + thresholdBonus;
-  const sT = sA ? parseInt(sA.thresholds.split("/")[1]) + c.level + thresholdBonus
-           : hasBareBones ? BB_THRESHOLDS[bbTier][1] + c.level + thresholdBonus
-           : c.level * 2 + thresholdBonus;
+  const sT = sA ? parseInt(sA.thresholds.split("/")[1]) + c.level + thresholdBonus + severeThresholdBonus
+           : hasBareBones ? BB_THRESHOLDS[bbTier][1] + thresholdBonus + severeThresholdBonus
+           : c.level * 2 + thresholdBonus + severeThresholdBonus;
 
   // ── Armor Score — base + shield bonuses ─────────────────────────────
   // Round Shield: +1 Armor Score  |  Tower Shield: +2 Armor Score
   const shieldBonus = sw ? (sw.feature.includes("+2 Armor Score") ? 2 : sw.feature.includes("+1 Armor Score") ? 1 : 0) : 0;
-  const aS = (sA ? sA.score : hasBareBones ? Math.max(0, 3 + effTraits.Strength) : 0) + shieldBonus;
+  const aS = (sA ? sA.score : 0) + armorScoreBonus + shieldBonus;
 
   // ── Evasion modifier — armor + weapons + shields ─────────────────────
   // Armor: Gambeson +1, Chainmail −1, Full Plate −2
@@ -282,39 +326,32 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   }
   // Ancestry abilities
   const ancestryFeatures = getActiveAncestryFeatures(c);
+  // Features that appear as quick-action buttons (non-passive, have a mechanic cost/roll)
+  const mechFeatures = ["Kick", "Elemental Breath", "Luckbender", "Wings", "Charge", "Fungril Network", "Death Connection", "Retract", "Reach", "Danger Sense", "Internal Compass", "Adaptability", "Dread Visage", "Retracting Claws", "Tusks", "Long Tongue"];
   ancestryFeatures.forEach(feature => {
-    const colonIdx = feature.indexOf(":");
-    if (colonIdx > -1) {
-      const abilityName = feature.substring(0, colonIdx).trim();
-      const abilityDesc = feature.substring(colonIdx + 1).trim();
-      // Filter out purely passive/descriptive features (those without game mechanics)
-      const mechFeatures = ["Kick", "Elemental Breath", "Luckbender", "Wings", "Charge", "Fungril Network", "Death Connection", "Retract", "Reach", "Danger Sense", "Internal Compass", "Adaptability", "Dread Visage", "Retracting Claws", "Tusks", "Long Tongue"];
-      if (mechFeatures.includes(abilityName)) {
-        const abilityCost = parseCost(abilityDesc);
-        const costLabel = abilityCost
-          ? (abilityCost.type === "hope" ? `${abilityCost.amount} ✦Hope` : `${abilityCost.amount} Stress`)
-          : "";
-        actions.push({ label: abilityName, detail: costLabel, sub: abilityDesc, type: "ability", cost: abilityCost });
-      }
+    if (!feature) return;
+    const abilityName = feature.name;
+    const abilityDesc = feature.text;
+    if (mechFeatures.includes(abilityName)) {
+      const abilityCost = parseCost(abilityDesc);
+      const costLabel = abilityCost
+        ? (abilityCost.type === "hope" ? `${abilityCost.amount} ✦Hope` : `${abilityCost.amount} Stress`)
+        : "";
+      actions.push({ label: abilityName, detail: costLabel, sub: abilityDesc, type: "ability", cost: abilityCost });
     }
   });
   // Class hope feature (costs 3 Hope)
   if (cls && cls.hopeFeature) {
-    const ci = cls.hopeFeature.indexOf(":");
-    const hfName = ci > -1 ? cls.hopeFeature.substring(0, ci).trim() : "Hope Feature";
-    const hfDesc = ci > -1 ? cls.hopeFeature.substring(ci + 1).trim() : cls.hopeFeature;
-    actions.push({ label: hfName, detail: "3 ✦Hope", sub: hfDesc, type: "hopeFeature", cost: { type: "hope", amount: 3 } });
+    const hf = cls.hopeFeature;
+    actions.push({ label: hf.name, detail: "3 ✦Hope", sub: hf.text, type: "hopeFeature", cost: { type: "hope", amount: 3 } });
   }
   // Community active ability (only if it has a parseable Hope/Stress cost)
   if (c.community && COMMUNITIES[c.community]) {
-    const commText = COMMUNITIES[c.community];
-    const commCost = parseCost(commText);
+    const commObj = COMMUNITIES[c.community];
+    const commCost = parseCost(commObj.text);
     if (commCost) {
-      const ci = commText.indexOf(":");
-      const cName = ci > -1 ? commText.substring(0, ci).trim() : c.community;
-      const cDesc = ci > -1 ? commText.substring(ci + 1).trim() : commText;
       const costLabel = commCost.type === "hope" ? `${commCost.amount} ✦Hope` : `${commCost.amount} Stress`;
-      actions.push({ label: cName, detail: costLabel, sub: cDesc, type: "community", cost: commCost });
+      actions.push({ label: commObj.name, detail: costLabel, sub: commObj.text, type: "community", cost: commCost });
     }
   }
   // Common trait actions (use effective traits to reflect equipment penalties)
@@ -1296,39 +1333,28 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
 
             // Ancestry passive features (those NOT already in Quick Actions)
             getActiveAncestryFeatures(c).forEach(feat => {
-              const ci = feat.indexOf(":");
-              if (ci > -1) {
-                const name = feat.substring(0, ci).trim();
-                const desc = feat.substring(ci + 1).trim();
-                if (!mechFeatures.includes(name))
-                  passives.push({ source: c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry, name, desc });
-              }
+              if (!feat || mechFeatures.includes(feat.name)) return;
+              passives.push({ source: c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry, name: feat.name, desc: feat.text });
             });
 
             // Community feature (always shown for reference)
             if (c.community && COMMUNITIES[c.community]) {
               const ct = COMMUNITIES[c.community];
-              const ci = ct.indexOf(":");
-              passives.push({
-                source: c.community,
-                name: ci > -1 ? ct.substring(0, ci).trim() : c.community,
-                desc: ci > -1 ? ct.substring(ci + 1).trim() : ct
-              });
+              passives.push({ source: c.community, name: ct.name, desc: ct.text });
             }
 
             // Subclass features (subclassLevel-gated)
             if (sub) {
               [
-                { text: sub.foundation,     minSubLv: 1, tier: "Foundation" },
-                { text: sub.specialization, minSubLv: 2, tier: "Specialization" },
-                { text: sub.mastery,        minSubLv: 3, tier: "Mastery" },
-              ].forEach(({ text, minSubLv, tier }) => {
-                if (!text || subclassLevel < minSubLv) return;
-                const ci = text.indexOf(":");
+                { obj: sub.foundation,     minSubLv: 1, tier: "Foundation" },
+                { obj: sub.specialization, minSubLv: 2, tier: "Specialization" },
+                { obj: sub.mastery,        minSubLv: 3, tier: "Mastery" },
+              ].forEach(({ obj, minSubLv, tier }) => {
+                if (!obj || subclassLevel < minSubLv) return;
                 passives.push({
                   source: `${c.subclass} · ${tier}`,
-                  name: ci > -1 ? text.substring(0, ci).trim() : tier,
-                  desc: ci > -1 ? text.substring(ci + 1).trim() : text
+                  name: obj.name || tier,
+                  desc: obj.text || ""
                 });
               });
             }
@@ -1336,12 +1362,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             // Class features
             if (cls) {
               cls.classFeatures.forEach(feat => {
-                const ci = feat.indexOf(":");
-                passives.push({
-                  source: c.className,
-                  name: ci > -1 ? feat.substring(0, ci).trim() : "Class Feature",
-                  desc: ci > -1 ? feat.substring(ci + 1).trim() : feat
-                });
+                passives.push({ source: c.className, name: feat.name, desc: feat.text });
               });
             }
 
@@ -1395,19 +1416,8 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           {(() => {
             const classItems = Object.keys(CLASSES).map(n => {
               const cl = CLASSES[n];
-              // Reformat each feature: "Name: text" → "**Name**: text"
-              const featureLines = cl.classFeatures.map(f => {
-                const colonIdx = f.indexOf(":");
-                if (colonIdx > 0) {
-                  return `**${f.slice(0, colonIdx)}**:${f.slice(colonIdx + 1)}`;
-                }
-                return f;
-              }).join("\n\n");
-              const hopeFormatted = (() => {
-                const colonIdx = cl.hopeFeature.indexOf(":");
-                if (colonIdx > 0) return `**${cl.hopeFeature.slice(0, colonIdx)}**:${cl.hopeFeature.slice(colonIdx + 1)}`;
-                return cl.hopeFeature;
-              })();
+              const featureLines = cl.classFeatures.map(f => `**${f.name}**:${f.text}`).join("\n\n");
+              const hopeFormatted = `**${cl.hopeFeature.name}**:${cl.hopeFeature.text}`;
               return {
                 key: n,
                 label: n,
@@ -1449,7 +1459,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                     key: n,
                     label: n,
                     meta: `${sc.desc}${sc.spellcast ? ` · Spellcast: ${sc.spellcast}` : ""}`,
-                    body: `${sc.desc}${sc.spellcast ? `\n**Spellcast Trait**: ${sc.spellcast}` : ""}\n\n## Foundation\n${fmt(sc.foundation)}\n\n## Specialization\n${fmt(sc.specialization)}\n\n## Mastery\n${fmt(sc.mastery)}`,
+                    body: `${sc.desc}${sc.spellcast ? `\n**Spellcast Trait**: ${sc.spellcast}` : ""}\n\n## Foundation\n${fmt(sc.foundation?.text || "")}\n\n## Specialization\n${fmt(sc.specialization?.text || "")}\n\n## Mastery\n${fmt(sc.mastery?.text || "")}`,
                   };
                 });
                 return (
@@ -1472,9 +1482,9 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 );
               })()}
             </Card>
-                <Card><Lbl>Hope Feature (3 Hope)</Lbl><div style={{ fontSize: 12, lineHeight: 1.6, color: P.textMuted }}>{cls.hopeFeature}</div></Card>
-                <Card><Lbl>Class Features</Lbl>{cls.classFeatures.map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}</Card>
-                {sub && <Card><Lbl>Subclass — {c.subclass}</Lbl><Feat title="Foundation" text={sub.foundation} /><Feat title="Specialization" text={sub.specialization} /><Feat title="Mastery" text={sub.mastery} /></Card>}
+                <Card><Lbl>Hope Feature (3 Hope)</Lbl><div style={{ fontSize: 12, lineHeight: 1.6, color: P.textMuted }}>{cls.hopeFeature.text}</div></Card>
+                <Card><Lbl>Class Features</Lbl>{cls.classFeatures.map((f, i) => <Feat key={i} title={f.name} text={f.text} />)}</Card>
+                {sub && <Card><Lbl>Subclass — {c.subclass}</Lbl><Feat title="Foundation" text={sub.foundation?.text} /><Feat title="Specialization" text={sub.specialization?.text} /><Feat title="Mastery" text={sub.mastery?.text} /></Card>}
 
                 <Card><Lbl>Starting Items</Lbl><div style={{ fontSize: 12, color: P.textMuted }}>{cls.items}</div></Card>
           </>}
@@ -1497,16 +1507,11 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               const ancestryItems = (excludeKey) => Object.keys(ANCESTRIES)
                 .filter(a => a !== excludeKey)
                 .map(a => {
-                  const fmtFeature = (f) => {
-                    const colonIdx = f.indexOf(":");
-                    if (colonIdx > 0) return `**${f.slice(0, colonIdx)}**:${f.slice(colonIdx + 1)}`;
-                    return f;
-                  };
                   return {
                     key: a,
                     label: a,
-                    meta: ANCESTRIES[a].map(f => f.split(":")[0]).join(" · "),
-                    body: `## Ancestry Features\n\n` + ANCESTRIES[a].map(fmtFeature).join("\n\n"),
+                    meta: ANCESTRIES[a].map(f => f.name).join(" · "),
+                    body: `## Ancestry Features\n\n` + ANCESTRIES[a].map(f => `**${f.name}**:${f.text}`).join("\n\n"),
                   };
                 });
 
@@ -1517,10 +1522,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               const primary = c.ancestry ? ANCESTRIES[c.ancestry] : null;
               const secondary = c.ancestrySecondary ? ANCESTRIES[c.ancestrySecondary] : null;
               const optionA = primary && secondary
-                ? { feat1: primary[0]?.split(":")[0], feat2: secondary[1]?.split(":")[0], from1: c.ancestry, from2: c.ancestrySecondary }
+                ? { feat1: primary[0]?.name, feat2: secondary[1]?.name, from1: c.ancestry, from2: c.ancestrySecondary }
                 : null;
               const optionB = primary && secondary
-                ? { feat1: primary[1]?.split(":")[0], feat2: secondary[0]?.split(":")[0], from1: c.ancestry, from2: c.ancestrySecondary }
+                ? { feat1: primary[1]?.name, feat2: secondary[0]?.name, from1: c.ancestry, from2: c.ancestrySecondary }
                 : null;
 
               // Mixed is fully locked when both ancestries + pick exist and not in edit mode
@@ -1578,9 +1583,9 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                       <>
                         <div style={{ padding: "8px 12px", borderRadius: 8, background: P.accent + "14", border: `2px solid ${P.accent}`, marginBottom: 8 }}>
                           <div style={{ fontSize: 15, fontWeight: 800, color: P.accent }}>{c.ancestry}</div>
-                          <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{ANCESTRIES[c.ancestry].map(f => f.split(":")[0]).join(" · ")}</div>
+                          <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{ANCESTRIES[c.ancestry].map(f => f.name).join(" · ")}</div>
                         </div>
-                        {ANCESTRIES[c.ancestry].map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}
+                        {ANCESTRIES[c.ancestry].map((f, i) => <Feat key={i} title={f.name} text={f.text} />)}
                       </>
                     )}
                   </>}
@@ -1594,7 +1599,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                         {c.mixedAncestryLabel ? ` · "${c.mixedAncestryLabel}"` : ""}
                       </div>
                     </div>
-                    {activeFeatures.map((f, i) => <Feat key={i} title={f.split(":")[0]} text={f} />)}
+                    {activeFeatures.map((f, i) => f && <Feat key={i} title={f.name} text={f.text} />)}
                   </>}
 
                   {/* ── MIXED ANCESTRY — EDIT VIEW ── */}
@@ -1618,7 +1623,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                       {c.ancestry && !editingAncestry && (
                         <div style={{ padding: "6px 10px", borderRadius: 7, background: P.accent + "14", border: `1px solid ${P.accent}55` }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: P.accent }}>{c.ancestry}</div>
-                          <div style={{ fontSize: 10, color: P.textMuted, marginTop: 1 }}>{(ANCESTRIES[c.ancestry] || []).map((f,i) => `${i===0?"①":"②"} ${f.split(":")[0]}`).join("  ")}</div>
+                          <div style={{ fontSize: 10, color: P.textMuted, marginTop: 1 }}>{(ANCESTRIES[c.ancestry] || []).map((f,i) => `${i===0?"①":"②"} ${f.name}`).join("  ")}</div>
                         </div>
                       )}
                     </div>
@@ -1637,7 +1642,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                       {c.ancestrySecondary && !editingAncestrySecondary && (
                         <div style={{ padding: "6px 10px", borderRadius: 7, background: P.accent + "14", border: `1px solid ${P.accent}55` }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: P.accent }}>{c.ancestrySecondary}</div>
-                          <div style={{ fontSize: 10, color: P.textMuted, marginTop: 1 }}>{(ANCESTRIES[c.ancestrySecondary] || []).map((f,i) => `${i===0?"①":"②"} ${f.split(":")[0]}`).join("  ")}</div>
+                          <div style={{ fontSize: 10, color: P.textMuted, marginTop: 1 }}>{(ANCESTRIES[c.ancestrySecondary] || []).map((f,i) => `${i===0?"①":"②"} ${f.name}`).join("  ")}</div>
                         </div>
                       )}
                     </div>
@@ -1696,15 +1701,12 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           <Card>
             {(() => {
               const communityItems = Object.keys(COMMUNITIES).map(k => {
-                const text = COMMUNITIES[k];
-                const colonIdx = text.indexOf(":");
-                const featureName = colonIdx > 0 ? text.slice(0, colonIdx) : k;
-                const featureBody = colonIdx > 0 ? text.slice(colonIdx + 1) : text;
+                const obj = COMMUNITIES[k];
                 return {
                   key: k,
                   label: k,
-                  meta: featureName,
-                  body: `## Community Feature\n\n**${featureName}**:${featureBody}`,
+                  meta: obj.name,
+                  body: `## Community Feature\n\n**${obj.name}**:${obj.text}`,
                 };
               });
               return (
@@ -1720,10 +1722,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                     <>
                       <div style={{ padding: "8px 12px", borderRadius: 8, background: P.accent + "14", border: `2px solid ${P.accent}`, marginBottom: 10 }}>
                         <div style={{ fontSize: 15, fontWeight: 800, color: P.accent }}>{c.community}</div>
-                        <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{COMMUNITIES[c.community].split(":")[0]}</div>
+                        <div style={{ fontSize: 11, color: P.textMuted, marginTop: 1 }}>{COMMUNITIES[c.community].name}</div>
                       </div>
                       <div style={{ marginBottom: 10, padding: 10, background: P.surface, borderRadius: 8, border: `1px solid ${P.border}` }}>
-                        <div style={{ fontSize: 12, lineHeight: 1.6, color: P.textMuted }}>{COMMUNITIES[c.community]}</div>
+                        <div style={{ fontSize: 12, lineHeight: 1.6, color: P.textMuted }}>{COMMUNITIES[c.community].text}</div>
                       </div>
                       <div style={{ marginTop: 4 }}>
                         <Lbl>{COMMUNITY_HAS_NOTES[c.community] || "Community Notes"}</Lbl>

@@ -1,1 +1,1 @@
-$(python3 -c "import json; d=json.load(open('/tmp/content.json')); print(d['jsx'], end='')")
+PLACEHOLDER_JSX

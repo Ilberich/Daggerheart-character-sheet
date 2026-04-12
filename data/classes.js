@@ -1,4 +1,4 @@
-const CLASSES = {
+export const CLASSES = {
   Bard: { domains: ["Grace", "Codex"], evasion: 10, hp: 5,
     subclasses: {
       Troubadour: {

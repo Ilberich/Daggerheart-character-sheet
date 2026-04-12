@@ -1,3 +1,17 @@
+import { useState, useCallback, useEffect } from 'react';
+import { CLASSES } from '../data/classes.js';
+import { ANCESTRIES, COMMUNITIES, COMMUNITY_HAS_NOTES, hasAncestryFeature, getActiveAncestryFeatures, getMixedAncestryLabel } from '../data/ancestries.js';
+import { DOMAIN_CARDS, DOMAIN_COLORS } from '../data/domain-cards.js';
+import { RULES } from '../data/rules.js';
+import { THEMES, THEME_META, P, sBtn, mono } from '../data/themes.js';
+import { TRAIT_KEYS, TRAIT_SHORT, TRAIT_ACTIONS } from '../data/config.js';
+import { WEAPONS_PRIMARY, WEAPONS_SECONDARY, ARMOR } from '../data/equipment.js';
+import { ADV_MAX, ADV_COST, getTrait, advTierKey, advRemainingUses } from '../utils/advancement.js';
+import { TabBar, Card, Lbl, Inp, Sel, Pip, Feat, Grid, RichBody, PickerAccordion } from './ui.jsx';
+import { CompanionTab } from './companion-tab.jsx';
+import { TraitModal } from './trait-modal.jsx';
+import { LevelUpModal } from './level-up-modal.jsx';
+
 function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [tab, setTab] = useState("Play");
   const [rulesSearch, setRulesSearch] = useState("");
@@ -1986,3 +2000,5 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     </div>
   );
 }
+
+export default DaggerheartSheet;

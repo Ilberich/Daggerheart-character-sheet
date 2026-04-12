@@ -1,7 +1,12 @@
+import { useState } from 'react';
+import { P, mono } from '../data/themes.js';
+import { TRAIT_KEYS, TRAIT_ACTIONS } from '../data/config.js';
+import { Lbl } from './ui.jsx';
+
 // ═══════════════════════════════════════════════════════════════
 // TRAIT ASSIGNMENT MODAL
 // ═══════════════════════════════════════════════════════════════
-function TraitModal({ currentTraits, suggestedTraits, pool, onConfirm, onClose }) {
+export function TraitModal({ currentTraits, suggestedTraits, pool, onConfirm, onClose }) {
   // assignment: { AGI: poolId | null, ... }
   const [assignment, setAssignment] = useState(() => {
     // Pre-fill from current traits by greedily matching pool slots

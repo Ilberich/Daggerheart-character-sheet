@@ -8,50 +8,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Daggerheart">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon.svg">
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <title>Daggerheart</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <div id="root"></div>
+  <script type="module" src="/app.jsx"></script>
 
-  <!-- React 18 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel standalone for JSX transform (in-browser) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
-
-  <!-- Game data -->
-  <script src="data/classes.js"></script>
-  <script src="data/config.js"></script>
-  <script src="data/ancestries.js"></script>
-  <script src="data/equipment.js"></script>
-  <script src="data/domain-cards.js"></script>
-  <script src="data/themes.js"></script>
-  <script src="data/rules.js"></script>
-  <script src="utils/advancement.js"></script>
-
-  <!-- Components (Babel compiles JSX) -->
-  <script type="text/babel" src="components/ui.jsx" data-presets="react"></script>
-  <script type="text/babel" src="components/companion-tab.jsx" data-presets="react"></script>
-  <script type="text/babel" src="components/trait-modal.jsx" data-presets="react"></script>
-  <script type="text/babel" src="components/level-up-modal.jsx" data-presets="react"></script>
-  <script type="text/babel" src="components/character-sheet.jsx" data-presets="react"></script>
-  <script type="text/babel" src="app.jsx" data-presets="react"></script>
-
+  <!-- Install banner (Android Chrome) — hidden until beforeinstallprompt fires -->
   <script>
-    // Register service worker for offline support + PWA install prompt
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('[SW] Registered, scope:', reg.scope))
-          .catch(err => console.log('[SW] Registration failed:', err));
-      });
-    }
-
-    // Intercept the PWA install prompt and surface it via a banner
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
@@ -73,7 +41,6 @@
     }
   </script>
 
-  <!-- Install banner (Android Chrome) — hidden until beforeinstallprompt fires -->
   <div id="install-banner" style="
     display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
     background: #1c2030; border-top: 1px solid #6366f1;
@@ -98,6 +65,5 @@
       </button>
     </div>
   </div>
-
 </body>
 </html>

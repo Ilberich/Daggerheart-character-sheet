@@ -1,4 +1,4 @@
-const WEAPONS_PRIMARY = [
+export const WEAPONS_PRIMARY = [
   { name: "Broadsword", trait: "Agility", range: "Melee", damage: "d8", type: "phy", burden: "1H", feature: "Reliable: +1 attack" },
   { name: "Longsword", trait: "Agility", range: "Melee", damage: "d8+3", type: "phy", burden: "2H", feature: "" },
   { name: "Battleaxe", trait: "Strength", range: "Melee", damage: "d10+3", type: "phy", burden: "2H", feature: "" },
@@ -26,7 +26,7 @@ const WEAPONS_PRIMARY = [
   { name: "Greatstaff", trait: "Knowledge", range: "V. Far", damage: "d6", type: "mag", burden: "2H", feature: "Powerful: extra die, discard low" },
 ];
 
-const WEAPONS_SECONDARY = [
+export const WEAPONS_SECONDARY = [
   { name: "Shortsword", trait: "Agility", range: "Melee", damage: "d8", type: "phy", burden: "1H", feature: "Paired: +2 primary dmg in Melee" },
   { name: "Small Dagger", trait: "Finesse", range: "Melee", damage: "d8", type: "phy", burden: "1H", feature: "Paired: +2 primary dmg in Melee" },
   { name: "Round Shield", trait: "Strength", range: "Melee", damage: "d4", type: "phy", burden: "1H", feature: "Protective: +1 Armor Score" },
@@ -36,7 +36,7 @@ const WEAPONS_SECONDARY = [
   { name: "Hand Crossbow", trait: "Finesse", range: "Far", damage: "d6+1", type: "phy", burden: "1H", feature: "" },
 ];
 
-const ARMOR = [
+export const ARMOR = [
   { name: "Gambeson", thresholds: "5 / 11", score: 3, feature: "Flexible: +1 Evasion" },
   { name: "Leather", thresholds: "6 / 13", score: 3, feature: "" },
   { name: "Chainmail", thresholds: "7 / 15", score: 4, feature: "Heavy: −1 Evasion" },

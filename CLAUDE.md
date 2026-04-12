@@ -119,7 +119,7 @@ Highborne: { name: "Privilege", passive: true, summary: "...", text: "..." }
 |---|---|
 | number | flat bonus |
 | `"proficiency"` | current `prof` value (computed at runtime) |
-| `"halfAgility"` | `Math.floor(effTraits.Agility / 2)` — **floor, not ceil** |
+| `"halfAgility"` | `Math.ceil(effTraits.Agility / 2)` — SRD p.42: always round up unless stated otherwise |
 | `"3+strength"` | `Math.max(0, 3 + effTraits.Strength)` |
 
 | `condition` | meaning |

@@ -186,7 +186,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   // Resolve computed amount strings to numeric values
   const resolveAmount = (amount) => {
     if (amount === "proficiency") return prof;
-    if (amount === "halfAgility") return Math.floor(effTraits.Agility / 2);
+    if (amount === "halfAgility") return Math.ceil(effTraits.Agility / 2);
     if (amount === "3+strength")  return Math.max(0, 3 + effTraits.Strength);
     return amount;
   };

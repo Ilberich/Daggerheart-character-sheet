@@ -1,10 +1,14 @@
+import { useState } from 'react';
+import { P, sBtn, mono } from '../data/themes.js';
+import { Card, Lbl, Inp, Sel, Pip } from './ui.jsx';
+
 // ═══════════════════════════════════════════════════════════════
 // COMPANION TAB — Beastbound Ranger only
 // ═══════════════════════════════════════════════════════════════
 const COMPANION_DAMAGE_DICE = ["d6", "d8", "d10", "d12"];
 const COMPANION_RANGES = ["Melee", "Very Close", "Close", "Far", "Very Far"];
 
-function CompanionTab({ c, u, prof }) {
+export function CompanionTab({ c, u, prof }) {
   const [editComp, setEditComp] = useState(false);
   const [editExp, setEditExp]   = useState(false);
 

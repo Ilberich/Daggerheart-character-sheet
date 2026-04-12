@@ -1,7 +1,12 @@
+import { useState } from 'react';
+import { P, mono } from '../data/themes.js';
+import { TRAIT_KEYS, TRAIT_SHORT } from '../data/config.js';
+import { ADV_MAX, ADV_COST, advAccessibleTiers, getTrait } from '../utils/advancement.js';
+
 // ═══════════════════════════════════════════════════════════════
 // LEVEL UP MODAL
 // ═══════════════════════════════════════════════════════════════
-function LevelUpModal({ c, onConfirm, onClose }) {
+export function LevelUpModal({ c, onConfirm, onClose }) {
   const newLevel = c.level + 1;
   const isNewTier = [2, 5, 8].includes(newLevel);
   const tierLabel = newLevel <= 4 ? "Tier 2" : newLevel <= 7 ? "Tier 3" : "Tier 4";

@@ -1,4 +1,4 @@
-const THEMES = {
+export const THEMES = {
   // ── Original dark themes ──────────────────────────────────────────
   "Pulse":   { bg: "#0d0f14", surface: "#161922", card: "#1c2030", cardHover: "#232840", border: "#2a3050", borderActive: "#6366f1", text: "#e2e4f0",  textMuted: "#8890b0", accent: "#6366f1", accentGlow: "rgba(99,102,241,0.25)",  hope: "#facc15", fear: "#ef4444", hp: "#22c55e", stress: "#f97316", gold: "#fbbf24" },
   "Canopy":  { bg: "#081009", surface: "#0e1a0f", card: "#132016", cardHover: "#1a2e1c", border: "#1d3421", borderActive: "#4ade80", text: "#d4f0da",  textMuted: "#6a9a74", accent: "#4ade80", accentGlow: "rgba(74,222,128,0.25)",   hope: "#fbbf24", fear: "#ef4444", hp: "#86efac", stress: "#f97316", gold: "#fbbf24" },
@@ -21,7 +21,7 @@ const THEMES = {
   "Starfall":        { bg: "#060810", surface: "#0a0e1c", card: "#101628", cardHover: "#181e32", border: "#202840", borderActive: "#2c3650", text: "#f0e8c8", textMuted: "#5a5030", accent: "#d4b848", accentGlow: "rgba(212,184,72,0.25)",   hope: "#facc15", fear: "#c8403a", hp: "#a08840", stress: "#6366f1", gold: "#d4b848" },
   "Ashwood":         { bg: "#0c0e0c", surface: "#141614", card: "#1c1e1c", cardHover: "#242624", border: "#303430", borderActive: "#3e423e", text: "#dce8dc", textMuted: "#607060", accent: "#8ab898", accentGlow: "rgba(138,184,152,0.25)",  hope: "#facc15", fear: "#c8403a", hp: "#6a9878", stress: "#6366f1", gold: "#8ab898" },
 };
-const THEME_META = {
+export const THEME_META = {
   "Pulse":  { label: "Pulse",  dot: "#6366f1", desc: "The Sync — living tree energy" },
   "Canopy": { label: "Canopy", dot: "#4ade80", desc: "Emerald Sea — solarpunk green" },
   "Roots":  { label: "Roots",  dot: "#f97316", desc: "The Iron Deep — rust & biolume" },
@@ -42,6 +42,6 @@ const THEME_META = {
   "Starfall":       { label: "Starfall",       dot: "#d4b848", desc: "Golden meteor dusk" },
   "Ashwood":        { label: "Ashwood",        dot: "#8ab898", desc: "Grey-green misty forest" },
 };
-const P = { ...THEMES["Pulse"] };
-const sBtn = { width: 26, height: 26, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0 };
-const mono = "'JetBrains Mono', monospace";
+export const P = { ...THEMES["Pulse"] };
+export const sBtn = { width: 26, height: 26, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0 };
+export const mono = "'JetBrains Mono', monospace";

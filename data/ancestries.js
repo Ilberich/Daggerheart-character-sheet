@@ -1,4 +1,4 @@
-const ANCESTRIES = {
+export const ANCESTRIES = {
   Clank: [
     {
       name: "Purposeful Design", passive: true,
@@ -221,7 +221,7 @@ const ANCESTRIES = {
   ],
 };
 
-const COMMUNITIES = {
+export const COMMUNITIES = {
   Highborne: {
     name: "Privilege", passive: true,
     summary: "Passive: Advantage on rolls to consort with nobles, negotiate prices, or leverage reputation",
@@ -300,13 +300,13 @@ const COMMUNITIES = {
   },
 };
 
-const COMMUNITY_HAS_NOTES = { Orderborne: "Record your three sayings or values below:" };
+export const COMMUNITY_HAS_NOTES = { Orderborne: "Record your three sayings or values below:" };
 
 // ── MIXED ANCESTRY HELPER ────────────────────────────────────
 // featureIdx: 0 = first feature, 1 = second feature
 // mixedFeaturePick "A" = feat[0] from primary (ancestry) + feat[1] from secondary (ancestrySecondary)
 // mixedFeaturePick "B" = feat[1] from primary (ancestry) + feat[0] from secondary (ancestrySecondary)
-function hasAncestryFeature(c, ancestryName, featureIdx) {
+export function hasAncestryFeature(c, ancestryName, featureIdx) {
   if (!c.isMixedAncestry) return c.ancestry === ancestryName;
   if (featureIdx === 0) {
     return (c.mixedFeaturePick === "A" && c.ancestry === ancestryName) ||
@@ -316,14 +316,14 @@ function hasAncestryFeature(c, ancestryName, featureIdx) {
            (c.mixedFeaturePick === "B" && c.ancestry === ancestryName);
   }
 }
-function getActiveAncestryFeatures(c) {
+export function getActiveAncestryFeatures(c) {
   if (!c.isMixedAncestry) return c.ancestry ? (ANCESTRIES[c.ancestry] || []) : [];
   const primary = ANCESTRIES[c.ancestry] || [];
   const secondary = ANCESTRIES[c.ancestrySecondary] || [];
   if (c.mixedFeaturePick === "A") return [primary[0], secondary[1]].filter(Boolean);
   return [primary[1], secondary[0]].filter(Boolean);
 }
-function getMixedAncestryLabel(c) {
+export function getMixedAncestryLabel(c) {
   if (!c.isMixedAncestry) return c.ancestry;
   if (c.mixedAncestryLabel) return c.mixedAncestryLabel;
   const parts = [c.ancestry, c.ancestrySecondary].filter(Boolean);

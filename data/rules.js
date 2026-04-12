@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // RULES REFERENCE DATA
 // ═══════════════════════════════════════════════════════════════
-const RULES = [
+export const RULES = [
   // Core Rolls
   {id:'r-action-roll',cat:'Core Rolls',name:'Action Roll',summary:'Roll 2d12, add modifier, meet/exceed Difficulty.',body:'Roll 2d12 (Hope Die + Fear Die), add trait modifier. Meet or exceed Difficulty to succeed. If Hope > Fear: Success with Hope. If Fear > Hope: Success with Fear. If equal: Success with Hope (ties favor Hope).'},
   {id:'r-crit',cat:'Core Rolls',name:'Critical Success',summary:'Both dice show the same number.',body:'Both dice show the same number. Exceptional narrative outcome.'},

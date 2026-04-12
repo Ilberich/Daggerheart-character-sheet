@@ -1,13 +1,14 @@
-const { useState, useCallback, useRef, useEffect } = React;
+import { useState } from 'react';
+import { P, mono } from '../data/themes.js';
 
-function TabBar({ tabs, active, onChange, glowing = new Set() }) { return <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${P.border}`, background: P.bg, position: "sticky", top: 0, zIndex: 100 }}>{tabs.map(t => <button key={t} onClick={() => onChange(t)} className={glowing.has(t) && active !== t ? "tab-pulse" : ""} style={{ flex: 1, padding: "10px 4px", fontSize: 13, fontWeight: active === t ? 700 : 500, color: active === t ? P.accent : glowing.has(t) && active !== t ? P.accent : P.textMuted, background: "none", border: "none", borderBottom: active === t ? `2px solid ${P.accent}` : "2px solid transparent", cursor: "pointer", whiteSpace: "nowrap", textAlign: "center", fontFamily: "inherit" }}>{t}</button>)}</div>; }
-function Card({ children, style, className }) { return <div className={className || ""} style={{ background: P.card, borderRadius: 12, padding: 14, border: `1px solid ${P.border}`, ...style }}>{children}</div>; }
-function Lbl({ children, style }) { return <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: P.textMuted, marginBottom: 4, ...style }}>{children}</div>; }
-function Inp({ value, onChange, placeholder, style }) { return <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", ...style }} />; }
-function Sel({ value, onChange, children, className }) { return <select value={value} onChange={e => onChange(e.target.value)} className={className || ""} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238890b0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32 }}>{children}</select>; }
-function Pip({ filled, color, onClick, size = 22 }) { return <div onClick={onClick} style={{ width: size, height: size, borderRadius: size / 2, border: `2px solid ${color}`, background: filled ? color : "transparent", cursor: "pointer", transition: "all .15s", flexShrink: 0 }} />; }
+export function TabBar({ tabs, active, onChange, glowing = new Set() }) { return <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${P.border}`, background: P.bg, position: "sticky", top: 0, zIndex: 100 }}>{tabs.map(t => <button key={t} onClick={() => onChange(t)} className={glowing.has(t) && active !== t ? "tab-pulse" : ""} style={{ flex: 1, padding: "10px 4px", fontSize: 13, fontWeight: active === t ? 700 : 500, color: active === t ? P.accent : glowing.has(t) && active !== t ? P.accent : P.textMuted, background: "none", border: "none", borderBottom: active === t ? `2px solid ${P.accent}` : "2px solid transparent", cursor: "pointer", whiteSpace: "nowrap", textAlign: "center", fontFamily: "inherit" }}>{t}</button>)}</div>; }
+export function Card({ children, style, className }) { return <div className={className || ""} style={{ background: P.card, borderRadius: 12, padding: 14, border: `1px solid ${P.border}`, ...style }}>{children}</div>; }
+export function Lbl({ children, style }) { return <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: P.textMuted, marginBottom: 4, ...style }}>{children}</div>; }
+export function Inp({ value, onChange, placeholder, style }) { return <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", ...style }} />; }
+export function Sel({ value, onChange, children, className }) { return <select value={value} onChange={e => onChange(e.target.value)} className={className || ""} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238890b0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32 }}>{children}</select>; }
+export function Pip({ filled, color, onClick, size = 22 }) { return <div onClick={onClick} style={{ width: size, height: size, borderRadius: size / 2, border: `2px solid ${color}`, background: filled ? color : "transparent", cursor: "pointer", transition: "all .15s", flexShrink: 0 }} />; }
 
-function Feat({ title, text, startOpen }) {
+export function Feat({ title, text, startOpen }) {
   const [open, setOpen] = useState(!!startOpen);
   return <div style={{ background: P.surface, borderRadius: 8, border: `1px solid ${P.border}`, marginBottom: 8, overflow: "hidden" }}>
     <div onClick={() => setOpen(!open)} style={{ padding: "10px 12px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -18,7 +19,7 @@ function Feat({ title, text, startOpen }) {
   </div>;
 }
 
-function Grid({ items, selected, onSelect, render }) {
+export function Grid({ items, selected, onSelect, render }) {
   return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
     {items.map(item => { const k = typeof item === "string" ? item : item.name; const s = selected === k;
       return <div key={k} onClick={() => onSelect(k)} style={{ background: s ? P.cardHover : P.surface, border: `1px solid ${s ? P.borderActive : P.border}`, borderRadius: 10, padding: "10px 12px", cursor: "pointer", boxShadow: s ? `0 0 12px ${P.accentGlow}` : "none", transition: "all .2s" }}>{render(item, s)}</div>; })}
@@ -33,7 +34,7 @@ function Grid({ items, selected, onSelect, render }) {
 //   • item          → bullet point
 //   blank line      → spacer
 //   plain text      → muted paragraph line
-function RichBody({ text }) {
+export function RichBody({ text }) {
   const lines = text.split("\n");
   return (
     <div>
@@ -82,7 +83,7 @@ function RichBody({ text }) {
   );
 }
 
-function PickerAccordion({ items, selected, onSelect, accentColor }) {
+export function PickerAccordion({ items, selected, onSelect, accentColor }) {
   const [openKey, setOpenKey] = useState(null);
   const accent = accentColor || P.accent;
   return (

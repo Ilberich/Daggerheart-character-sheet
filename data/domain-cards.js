@@ -1,4 +1,4 @@
-const DOMAIN_CARDS = {
+export const DOMAIN_CARDS = {
   Arcana: [
     {
       level: 1, name: "Rune Ward", type: "Spell", recallCost: 0,
@@ -763,7 +763,7 @@ const DOMAIN_CARDS = {
   ],
 };
 
-const DOMAIN_COLORS = {
+export const DOMAIN_COLORS = {
   Arcana: "#a855f7", Blade: "#ef4444", Bone: "#f97316",
   Codex: "#3b82f6", Grace: "#ec4899", Midnight: "#6366f1",
   Sage: "#22c55e", Splendor: "#facc15", Valor: "#f59e0b",

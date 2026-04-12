@@ -1,3 +1,10 @@
+import { useState, useRef, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+import { P, THEMES } from './data/themes.js';
+import { CLASSES } from './data/classes.js';
+import { hasAncestryFeature, getMixedAncestryLabel } from './data/ancestries.js';
+import DaggerheartSheet from './components/character-sheet.jsx';
+
 function newChar(id) {
   return {
     _id: id, name: "", pronouns: "", level: 1, className: "", subclass: "",
@@ -192,4 +199,4 @@ function App() {
   return <DaggerheartSheet c={characters[activeIdx]} setC={setC} onBack={handleBack} themeName={themeName} setTheme={handleSetTheme} />;
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(<App />);

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { P, THEMES } from './data/themes.js';
 import { CLASSES } from './data/classes.js';
 import { hasAncestryFeature, getMixedAncestryLabel } from './data/ancestries.js';
-import DaggerheartSheet from './components/character-sheet.jsx';
+import DaggerheartSheet from './components/CharacterSheet.jsx';
 
 function newChar(id) {
   return {

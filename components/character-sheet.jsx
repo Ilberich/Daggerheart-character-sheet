@@ -234,10 +234,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const bbTier = c.level <= 4 ? 0 : c.level <= 7 ? 1 : c.level <= 10 ? 2 : 3;
   const BB_THRESHOLDS = [[9,19],[11,24],[13,31],[15,38]];
   const mT = sA ? parseInt(sA.thresholds.split("/")[0]) + c.level + thresholdBonus
-           : hasBareBones ? BB_THRESHOLDS[bbTier][0] + thresholdBonus
+           : hasBareBones ? BB_THRESHOLDS[bbTier][0] + c.level + thresholdBonus
            : c.level + thresholdBonus;
   const sT = sA ? parseInt(sA.thresholds.split("/")[1]) + c.level + thresholdBonus + severeThresholdBonus
-           : hasBareBones ? BB_THRESHOLDS[bbTier][1] + thresholdBonus + severeThresholdBonus
+           : hasBareBones ? BB_THRESHOLDS[bbTier][1] + c.level + thresholdBonus + severeThresholdBonus
            : c.level * 2 + thresholdBonus + severeThresholdBonus;
 
   // ── Armor Score — base + shield bonuses ─────────────────────────────
@@ -1429,9 +1429,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               <Card className={!c.className ? "card-pulse" : ""}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <Lbl style={{ marginBottom: 0 }}>Class</Lbl>
-                  {c.className && <button onClick={() => setEditingClass(e => !e)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: editingClass ? P.accent + "22" : P.surface, color: editingClass ? P.accent : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>{editingClass ? "Done" : "Change"}</button>}
+                  {c.className && !c.cardsConfirmed && <button onClick={() => setEditingClass(e => !e)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: editingClass ? P.accent + "22" : P.surface, color: editingClass ? P.accent : P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>{editingClass ? "Done" : "Change"}</button>}
+                  {c.className && c.cardsConfirmed && <span style={{ fontSize: 10, color: P.textMuted, fontStyle: "italic" }}>Locked — unconfirm loadout to change</span>}
                 </div>
-                {(!c.className || editingClass) && (
+                {(!c.className || editingClass) && !c.cardsConfirmed && (
                   <PickerAccordion items={classItems} selected={c.className} onSelect={v => { u("className", v); u("subclass", ""); setEditingClass(false); setEditingSubclass(false); }} />
                 )}
                 {c.className && !editingClass && (
@@ -1843,7 +1844,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 {!isFull && selCount === 0 && <span style={{ color: P.hope }}>Choose {maxLoadout} domain cards for your starting loadout.</span>}
                 {!isFull && selCount > 0 && <span>Selected {selCount} of {maxLoadout} — <span style={{ color: P.hope }}>choose {maxLoadout - selCount} more</span></span>}
                 {isFull && !isConfirmed && <span style={{ color: P.hope }}>✓ Ready! Deselect to swap, or confirm your loadout.</span>}
-                {isFull && isConfirmed && <span style={{ color: P.hp }}>✓ Loadout confirmed ({selCount}/{maxLoadout})</span>}
+                {isFull && isConfirmed && <span style={{ color: P.hp }}>✓ Loadout confirmed</span>}
               </div>
               {!isFull && <div style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>Tap a card to add it to your loadout.</div>}
               {isFull && !isConfirmed && (
@@ -1861,7 +1862,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: DOMAIN_COLORS[domain] || P.accent }} />
                   <Lbl style={{ marginBottom: 0, color: DOMAIN_COLORS[domain] || P.accent }}>{domain} Domain</Lbl>
                 </div>
-                {(DOMAIN_CARDS[domain] || []).map(card => renderCard(domain, card))}
+                {(DOMAIN_CARDS[domain] || []).filter(card => !card.level || card.level <= c.level).map(card => renderCard(domain, card))}
               </div>
             ))}
 

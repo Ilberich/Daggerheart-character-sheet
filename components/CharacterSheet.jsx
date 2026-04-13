@@ -341,36 +341,6 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
     actions.push({ label: "Spellcast", detail: `${sub.spellcast} ${modStr}`, sub: "", type: "spell" });
   }
-  // Ancestry abilities
-  const ancestryFeatures = getActiveAncestryFeatures(c);
-  // Features that appear as quick-action buttons (non-passive, have a mechanic cost/roll)
-  const mechFeatures = ["Kick", "Elemental Breath", "Luckbender", "Wings", "Charge", "Fungril Network", "Death Connection", "Retract", "Reach", "Danger Sense", "Internal Compass", "Adaptability", "Dread Visage", "Retracting Claws", "Tusks", "Long Tongue"];
-  ancestryFeatures.forEach(feature => {
-    if (!feature) return;
-    const abilityName = feature.name;
-    const abilityDesc = feature.text;
-    if (mechFeatures.includes(abilityName)) {
-      const abilityCost = parseCost(abilityDesc);
-      const costLabel = abilityCost
-        ? (abilityCost.type === "hope" ? `${abilityCost.amount} ✦Hope` : `${abilityCost.amount} Stress`)
-        : "";
-      actions.push({ label: abilityName, detail: costLabel, sub: abilityDesc, type: "ability", cost: abilityCost });
-    }
-  });
-  // Class hope feature (costs 3 Hope)
-  if (cls && cls.hopeFeature) {
-    const hf = cls.hopeFeature;
-    actions.push({ label: hf.name, detail: "3 ✦Hope", sub: hf.text, type: "hopeFeature", cost: { type: "hope", amount: 3 } });
-  }
-  // Community active ability (only if it has a parseable Hope/Stress cost)
-  if (c.community && COMMUNITIES[c.community]) {
-    const commObj = COMMUNITIES[c.community];
-    const commCost = parseCost(commObj.text);
-    if (commCost) {
-      const costLabel = commCost.type === "hope" ? `${commCost.amount} ✦Hope` : `${commCost.amount} Stress`;
-      actions.push({ label: commObj.name, detail: costLabel, sub: commObj.text, type: "community", cost: commCost });
-    }
-  }
   // Common trait actions (use effective traits to reflect equipment penalties)
   TRAIT_KEYS.forEach(t => {
     const v = effTraits[t]; const d = v >= 0 ? `+${v}` : `${v}`;
@@ -936,7 +906,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             hasUntouchable={hasUntouchable} eM={eM} bbTier={bbTier}
             sA={sA} sw={sw}
             actions={actions}
-            canAfford={canAfford} spendCost={spendCost} costDisplay={costDisplay}
+            canAfford={canAfford} spendCost={spendCost} costDisplay={costDisplay} parseCost={parseCost}
             allExps={allExps} editExp={editExp} setEditExp={setEditExp}
             setRestModal={setRestModal} setRestChoices={setRestChoices}
             sub={sub} subclassLevel={subclassLevel} cls={cls}

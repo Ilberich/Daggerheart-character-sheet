@@ -21,8 +21,7 @@ export function PlayTab({
   const [resOpen,      setResOpen]      = useState(true);
   const [expOpen,      setExpOpen]      = useState(true);
   const [qaOpen,       setQaOpen]       = useState(true);
-  const [cardsOpen,    setCardsOpen]    = useState(true);
-  const [passivesOpen, setPassivesOpen] = useState(true);
+const [passivesOpen, setPassivesOpen] = useState(true);
   const [goldOpen,     setGoldOpen]     = useState(true);
   const [expandedRows, setExpandedRows] = useState(new Set());
   const toggleExpand = (key) => setExpandedRows(s => {
@@ -577,56 +576,6 @@ export function PlayTab({
                 </Card>
               );
             })()}
-          </div>
-
-          {/* __ Active Domain Cards collapsible __ */}
-          <div>
-            <div onClick={() => setCardsOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px", background:P.surface, borderRadius:8, border:`1px solid ${P.border}`, cursor:"pointer", marginBottom:6, userSelect:"none" }}>
-              <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Active Domain Cards</span>
-              <span style={{ display:"inline-block", transition:"transform 0.2s", transform:cardsOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
-            </div>
-            {cardsOpen && <>
-          {/* Active Domain Cards — passive: true cards only (active cards appear in Quick Actions) */}
-          {c.selectedCards.filter(key => { const [d,n] = key.split("::"); const card = (DOMAIN_CARDS[d]||[]).find(cd=>cd.name===n); return card && card.passive === true; }).length > 0 && <Card>
-            <Lbl>Active Domain Cards</Lbl>
-            {c.selectedCards.filter(key => { const [d,n] = key.split("::"); const card = (DOMAIN_CARDS[d]||[]).find(cd=>cd.name===n); return card && card.passive === true; }).map(key => {
-              const [domain, name] = key.split("::");
-              const card = (DOMAIN_CARDS[domain] || []).find(c => c.name === name);
-              if (!card) return null;
-              const domColor = DOMAIN_COLORS[domain] || P.accent;
-              const typeColor = { Ability: P.accent, Spell: "#a855f7", Grimoire: "#3b82f6" };
-              const dcCost = card.cost;
-              const dcAffordable = canAfford(dcCost);
-              const cd = costDisplay(card);
-              const hasCost = !!card.cost;
-              const hasOptional = !!card.optionalCost;
-              const optAffordable = hasOptional ? canAfford(card.optionalCost) : false;
-              return (
-                <div key={key}
-                  onClick={() => { if (hasCost && dcAffordable) spendCost(dcCost); }}
-                  style={{ marginBottom: 8, borderRadius: 10, border: `1px solid ${domColor}55`, background: domColor + "0d", overflow: "hidden", opacity: hasCost && !dcAffordable ? 0.45 : 1, cursor: hasCost ? (dcAffordable ? "pointer" : "not-allowed") : "default" }}>
-                  <div style={{ padding: "8px 12px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: domColor, flexShrink: 0 }} />
-                        <span style={{ fontSize: 14, fontWeight: 800, color: domColor }}>{card.name}</span>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: typeColor[card.type] || P.textMuted, textTransform: "uppercase", letterSpacing: 0.8 }}>{card.type}</span>
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: cd.color }}>⚡{cd.text}</span>
-                    </div>
-                    <div style={{ fontSize: 11, lineHeight: 1.65, color: P.textMuted, whiteSpace: "pre-line", marginTop: 6, paddingLeft: 16 }}>{card.text}</div>
-                    {hasOptional && <div
-                      onClick={(e) => { e.stopPropagation(); if (optAffordable) spendCost(card.optionalCost); }}
-                      style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: card.optionalCost.type === "hope" ? P.hope : P.stress, marginTop: 6, marginLeft: 16, padding: "4px 10px", border: `1px dashed ${card.optionalCost.type === "hope" ? P.hope + "66" : P.stress + "66"}`, borderRadius: 6, display: "inline-block", cursor: optAffordable ? "pointer" : "not-allowed", opacity: optAffordable ? 1 : 0.45 }}>
-                      ⚡ {card.optionalCost.amount} {card.optionalCost.type === "hope" ? "Hope" : "Stress"} → {card.optionalCost.label}
-                    </div>}
-                  </div>
-                </div>
-              );
-            })}
-          </Card>}
-            </>
-            }
           </div>
 
           {/* __ Passives collapsible __ */}

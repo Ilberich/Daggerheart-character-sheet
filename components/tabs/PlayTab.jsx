@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { P, mono, sBtn } from '../../data/themes.js';
 import { DOMAIN_CARDS, DOMAIN_COLORS } from '../../data/domain-cards/index.js';
 import { COMMUNITIES, getActiveAncestryFeatures } from '../../data/ancestries.js';
@@ -16,7 +17,21 @@ export function PlayTab({
   setRestModal, setRestChoices,
   sub, subclassLevel, cls,
 }) {
+  const [combatOpen,   setCombatOpen]   = useState(true);
+  const [resOpen,      setResOpen]      = useState(true);
+  const [expOpen,      setExpOpen]      = useState(true);
+  const [qaOpen,       setQaOpen]       = useState(true);
+  const [cardsOpen,    setCardsOpen]    = useState(true);
+  const [passivesOpen, setPassivesOpen] = useState(true);
+  const [goldOpen,     setGoldOpen]     = useState(true);
   return <>
+          {/* __ Combat Stats collapsible __ */}
+          <div>
+            <div onClick={() => setCombatOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px", background:P.surface, borderRadius:8, border:`1px solid ${P.border}`, cursor:"pointer", marginBottom:6, userSelect:"none" }}>
+              <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Combat Stats</span>
+              <span style={{ display:"inline-block", transition:"transform 0.2s", transform:combatOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
+            </div>
+            {combatOpen && <>
           {/* Trackers */}
           <Card>
             <div style={{ display: "flex", justifyContent: "space-around", textAlign: "center", marginBottom: 10 }}>
@@ -42,7 +57,17 @@ export function PlayTab({
               <span>Minor: &lt;{mT} → 1HP</span><span>Major: {mT}–{sT-1} → 2HP</span><span>Severe: {sT}+ → 3HP</span>
             </div>
           </Card>
+            </>
+            }
+          </div>
 
+          {/* __ Resources collapsible __ */}
+          <div>
+            <div onClick={() => setResOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px", background:P.surface, borderRadius:8, border:`1px solid ${P.border}`, cursor:"pointer", marginBottom:6, userSelect:"none" }}>
+              <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Resources</span>
+              <span style={{ display:"inline-block", transition:"transform 0.2s", transform:resOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
+            </div>
+            {resOpen && <>
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
               <Lbl style={{ marginBottom: 0 }}>Hit Points ({c.hp.filter(Boolean).length} / {maxHp})</Lbl>
@@ -327,39 +352,17 @@ export function PlayTab({
               </Card>
             );
           })()}
+            </>
+            }
+          </div>
 
-          {/* Experiences */}
-          <Card>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <Lbl style={{ marginBottom: 0 }}>Experiences</Lbl>
-              <button onClick={() => setEditExp(!editExp)} className={!editExp && allExps.some(e => !c[e.key]) ? "btn-pulse" : ""} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editExp ? P.accent : P.surface, color: editExp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit" }}>{editExp ? "Done" : "Edit"}</button>
+          {/* __ Quick Actions collapsible __ */}
+          <div>
+            <div onClick={() => setQaOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px", background:P.surface, borderRadius:8, border:`1px solid ${P.border}`, cursor:"pointer", marginBottom:6, userSelect:"none" }}>
+              <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Quick Actions</span>
+              <span style={{ display:"inline-block", transition:"transform 0.2s", transform:qaOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
             </div>
-            <div style={{ fontSize: 10, color: P.textMuted, marginBottom: 8 }}>Spend a Hope to add modifier to a roll</div>
-            {editExp ? (
-              <>
-                {allExps.map(({ key: ek, valKey: vk }, i) => (
-                  <div key={ek} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
-                    <Inp value={c[ek]} onChange={v => u(ek, v)} placeholder={`Experience ${i + 1}...`} style={{ flex: 1, fontSize: 13, padding: "6px 10px" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                      <button onClick={() => u(vk, Math.max(0, c[vk] - 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>−</button>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: P.accent, fontFamily: mono, minWidth: 20, textAlign: "center" }}>+{c[vk]}</span>
-                      <button onClick={() => u(vk, c[vk] + 1)} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>+</button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {allExps.map(({ key: ek, valKey: vk }, i) => (
-                  c[ek] ? <div key={ek} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: P.surface, borderRadius: 6, border: `1px solid ${P.border}` }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{c[ek]}</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: P.accent, fontFamily: mono }}>+{c[vk]}</span>
-                  </div> : <div key={ek} style={{ fontSize: 12, color: P.textMuted, fontStyle: "italic", padding: "6px 10px" }}>Tap Edit to set Experience {i + 1}</div>
-                ))}
-              </div>
-            )}
-          </Card>
-
+            {qaOpen && <>
           {/* Quick Actions */}
           <Card>
             <Lbl>Quick Actions</Lbl>
@@ -384,7 +387,17 @@ export function PlayTab({
               );
             })}
           </Card>
+            </>
+            }
+          </div>
 
+          {/* __ Active Domain Cards collapsible __ */}
+          <div>
+            <div onClick={() => setCardsOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px", background:P.surface, borderRadius:8, border:`1px solid ${P.border}`, cursor:"pointer", marginBottom:6, userSelect:"none" }}>
+              <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Active Domain Cards</span>
+              <span style={{ display:"inline-block", transition:"transform 0.2s", transform:cardsOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
+            </div>
+            {cardsOpen && <>
           {/* Active Domain Cards */}
           {c.selectedCards.length > 0 && <Card>
             <Lbl>Active Domain Cards</Lbl>
@@ -424,7 +437,17 @@ export function PlayTab({
               );
             })}
           </Card>}
+            </>
+            }
+          </div>
 
+          {/* __ Passives collapsible __ */}
+          <div>
+            <div onClick={() => setPassivesOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px", background:P.surface, borderRadius:8, border:`1px solid ${P.border}`, cursor:"pointer", marginBottom:6, userSelect:"none" }}>
+              <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Passives</span>
+              <span style={{ display:"inline-block", transition:"transform 0.2s", transform:passivesOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
+            </div>
+            {passivesOpen && <>
           {/* Passives — ancestry/community/subclass/class non-active effects */}
           {(() => {
             const passives = [];
@@ -481,7 +504,59 @@ export function PlayTab({
               </Card>
             );
           })()}
+            </>
+            }
+          </div>
 
+          {/* __ Experiences collapsible __ */}
+          <div>
+            <div onClick={() => setExpOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px", background:P.surface, borderRadius:8, border:`1px solid ${P.border}`, cursor:"pointer", marginBottom:6, userSelect:"none" }}>
+              <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Experiences</span>
+              <span style={{ display:"inline-block", transition:"transform 0.2s", transform:expOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
+            </div>
+            {expOpen && <>
+          {/* Experiences */}
+          <Card>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <Lbl style={{ marginBottom: 0 }}>Experiences</Lbl>
+              <button onClick={() => setEditExp(!editExp)} className={!editExp && allExps.some(e => !c[e.key]) ? "btn-pulse" : ""} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, border: `1px solid ${P.border}`, background: editExp ? P.accent : P.surface, color: editExp ? "#fff" : P.accent, cursor: "pointer", fontFamily: "inherit" }}>{editExp ? "Done" : "Edit"}</button>
+            </div>
+            <div style={{ fontSize: 10, color: P.textMuted, marginBottom: 8 }}>Spend a Hope to add modifier to a roll</div>
+            {editExp ? (
+              <>
+                {allExps.map(({ key: ek, valKey: vk }, i) => (
+                  <div key={ek} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                    <Inp value={c[ek]} onChange={v => u(ek, v)} placeholder={`Experience ${i + 1}...`} style={{ flex: 1, fontSize: 13, padding: "6px 10px" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      <button onClick={() => u(vk, Math.max(0, c[vk] - 1))} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>−</button>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: P.accent, fontFamily: mono, minWidth: 20, textAlign: "center" }}>+{c[vk]}</span>
+                      <button onClick={() => u(vk, c[vk] + 1)} style={{ ...sBtn, width: 20, height: 20, fontSize: 12 }}>+</button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {allExps.map(({ key: ek, valKey: vk }, i) => (
+                  c[ek] ? <div key={ek} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: P.surface, borderRadius: 6, border: `1px solid ${P.border}` }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{c[ek]}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: P.accent, fontFamily: mono }}>+{c[vk]}</span>
+                  </div> : <div key={ek} style={{ fontSize: 12, color: P.textMuted, fontStyle: "italic", padding: "6px 10px" }}>Tap Edit to set Experience {i + 1}</div>
+                ))}
+              </div>
+            )}
+          </Card>
+            </>
+            }
+          </div>
+
+          {/* __ Gold collapsible __ */}
+          <div>
+            <div onClick={() => setGoldOpen(o => !o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 14px", background:P.surface, borderRadius:8, border:`1px solid ${P.border}`, cursor:"pointer", marginBottom:6, userSelect:"none" }}>
+              <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Gold</span>
+              <span style={{ display:"inline-block", transition:"transform 0.2s", transform:goldOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
+            </div>
+            {goldOpen && <>
           {/* Gold */}
           <Card>
             <Lbl>Gold</Lbl>
@@ -498,5 +573,8 @@ export function PlayTab({
               ))}
             </div>
           </Card>
+            </>
+            }
+          </div>
   </>
 }

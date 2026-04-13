@@ -12,7 +12,7 @@ export function PlayTab({
   shieldBonus, hasBareBones, hasUntouchable, eM, bbTier,
   sA, sw,
   actions,
-  canAfford, spendCost, costDisplay,
+  canAfford, spendCost, costDisplay, parseCost,
   allExps, editExp, setEditExp,
   setRestModal, setRestChoices,
   sub, subclassLevel, cls,
@@ -24,6 +24,12 @@ export function PlayTab({
   const [cardsOpen,    setCardsOpen]    = useState(true);
   const [passivesOpen, setPassivesOpen] = useState(true);
   const [goldOpen,     setGoldOpen]     = useState(true);
+  const [expandedRows, setExpandedRows] = useState(new Set());
+  const toggleExpand = (key) => setExpandedRows(s => {
+    const n = new Set(s);
+    n.has(key) ? n.delete(key) : n.add(key);
+    return n;
+  });
   return <>
           {/* __ Combat Stats collapsible __ */}
           <div>
@@ -362,33 +368,215 @@ export function PlayTab({
               <span style={{ fontSize:13, fontWeight:700, color:P.text }}>Quick Actions</span>
               <span style={{ display:"inline-block", transition:"transform 0.2s", transform:qaOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
             </div>
-            {qaOpen && <>
-          {/* Quick Actions */}
-          <Card>
-            <Lbl>Quick Actions</Lbl>
-            {actions.length === 0 && <div style={{ fontSize: 12, color: P.textMuted, fontStyle: "italic" }}>Select weapons and class to see actions</div>}
-            {actions.filter(a => a.type !== "trait").map((a, i) => {
-              const affordable = canAfford(a.cost);
-              const costColor = a.cost?.type === "hope" ? P.hope : P.stress;
+            {qaOpen && (() => {
+              // Build unified item list in spec order
+              const qaItems = [];
+
+              // 1. Weapons + spellcast (from actions prop — keep existing format, no chevron)
+              actions.filter(a => a.type === "primary" || a.type === "secondary" || a.type === "spell").forEach(a => {
+                qaItems.push({ _weaponRow: true, a });
+              });
+
+              // 2. Domain cards in loadout where passive: false
+              c.selectedCards.forEach(key => {
+                const [domain, cardName] = key.split("::");
+                const card = (DOMAIN_CARDS[domain] || []).find(cd => cd.name === cardName);
+                if (!card || card.passive !== false) return;
+                const domColor = DOMAIN_COLORS[domain] || P.accent;
+                const cd = costDisplay(card);
+                qaItems.push({
+                  key: `dc-${key}`,
+                  icon: <span style={{ width:8, height:8, borderRadius:"50%", background:domColor, flexShrink:0, display:"inline-block" }} />,
+                  name: card.name,
+                  nameColor: domColor,
+                  source: domain,
+                  summary: card.summary,
+                  fullText: card.text,
+                  cost: card.cost,
+                  costText: card.cost ? cd.text : null,
+                  costColor: cd.color,
+                  optionalCost: card.optionalCost || null,
+                  clickCost: card.cost,
+                });
+              });
+
+              // 3. Hope feature
+              if (cls && cls.hopeFeature) {
+                const hf = cls.hopeFeature;
+                const hfCost = { type: "hope", amount: 3 };
+                qaItems.push({
+                  key: `hf-${hf.name}`,
+                  icon: <span style={{ color: P.hope, flexShrink:0 }}>✦</span>,
+                  name: hf.name,
+                  nameColor: P.hope,
+                  source: c.className,
+                  summary: hf.summary,
+                  fullText: hf.text,
+                  cost: hfCost,
+                  costText: "3 ✦Hope",
+                  costColor: P.hope,
+                  optionalCost: null,
+                  clickCost: hfCost,
+                });
+              }
+
+              // 4. Class features where passive: false
+              if (cls) {
+                cls.classFeatures.filter(f => f.passive === false).forEach(feat => {
+                  const cost = parseCost(feat.text);
+                  qaItems.push({
+                    key: `cf-${feat.name}`,
+                    icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
+                    name: feat.name,
+                    nameColor: P.text,
+                    source: c.className,
+                    summary: feat.summary,
+                    fullText: feat.text,
+                    cost,
+                    costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
+                    costColor: cost?.type === "hope" ? P.hope : P.stress,
+                    optionalCost: null,
+                    clickCost: cost,
+                  });
+                });
+              }
+
+              // 5. Subclass features where passive: false and tier unlocked
+              if (sub) {
+                [
+                  { obj: sub.foundation,     minSubLv: 1, tier: "Foundation" },
+                  { obj: sub.specialization, minSubLv: 2, tier: "Specialization" },
+                  { obj: sub.mastery,        minSubLv: 3, tier: "Mastery" },
+                ].forEach(({ obj, minSubLv, tier }) => {
+                  if (!obj || subclassLevel < minSubLv || obj.passive !== false) return;
+                  const cost = parseCost(obj.text);
+                  qaItems.push({
+                    key: `sf-${tier}-${obj.name}`,
+                    icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
+                    name: obj.name || tier,
+                    nameColor: P.text,
+                    source: `${c.subclass} · ${tier}`,
+                    summary: obj.summary,
+                    fullText: obj.text,
+                    cost,
+                    costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
+                    costColor: cost?.type === "hope" ? P.hope : P.stress,
+                    optionalCost: null,
+                    clickCost: cost,
+                  });
+                });
+              }
+
+              // 6. Ancestry features where passive: false
+              getActiveAncestryFeatures(c).forEach(feat => {
+                if (!feat || feat.passive !== false) return;
+                const cost = parseCost(feat.text);
+                qaItems.push({
+                  key: `af-${feat.name}`,
+                  icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
+                  name: feat.name,
+                  nameColor: P.text,
+                  source: c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry,
+                  summary: feat.summary,
+                  fullText: feat.text,
+                  cost,
+                  costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
+                  costColor: cost?.type === "hope" ? P.hope : P.stress,
+                  optionalCost: null,
+                  clickCost: cost,
+                });
+              });
+
+              // 7. Community ability where passive: false
+              if (c.community && COMMUNITIES[c.community]) {
+                const commObj = COMMUNITIES[c.community];
+                if (commObj.passive === false) {
+                  const cost = parseCost(commObj.text);
+                  qaItems.push({
+                    key: `ca-${commObj.name}`,
+                    icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
+                    name: commObj.name,
+                    nameColor: P.accent,
+                    source: c.community,
+                    summary: commObj.summary,
+                    fullText: commObj.text,
+                    cost,
+                    costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
+                    costColor: cost?.type === "hope" ? P.hope : P.stress,
+                    optionalCost: null,
+                    clickCost: cost,
+                  });
+                }
+              }
+
               return (
-                <div key={i}
-                  onClick={() => { if (a.cost && affordable) spendCost(a.cost); }}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 10px", background: P.surface, borderRadius: 8, border: `1px solid ${P.border}`, marginBottom: 6, opacity: a.cost && !affordable ? 0.4 : 1, cursor: a.cost ? (affordable ? "pointer" : "not-allowed") : "default" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: a.type === "spell" ? P.hope : a.type === "hopeFeature" ? P.hope : a.type === "community" ? P.accent : P.text }}>
-                      {a.type === "primary" ? "⚔ " : a.type === "secondary" ? "🛡 " : a.type === "spell" ? "✦ " : "✦ "}{a.label}
-                    </div>
-                    {a.sub && <div style={{ fontSize: 10, color: P.textMuted, marginTop: 2, whiteSpace: "pre-line", lineHeight: 1.45 }}>{a.sub}</div>}
-                  </div>
-                  {a.detail && (
-                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: a.cost ? costColor : P.textMuted, whiteSpace: "nowrap", marginLeft: 8, flexShrink: 0 }}>{a.detail}</span>
-                  )}
-                </div>
+                <Card>
+                  <Lbl>Quick Actions</Lbl>
+                  {qaItems.length === 0 && <div style={{ fontSize: 12, color: P.textMuted, fontStyle: "italic" }}>Select weapons and class to see actions</div>}
+                  {qaItems.map((item, i) => {
+                    if (item._weaponRow) {
+                      const a = item.a;
+                      const costColor = a.cost?.type === "hope" ? P.hope : P.stress;
+                      return (
+                        <div key={i}
+                          onClick={() => { if (a.cost && canAfford(a.cost)) spendCost(a.cost); }}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 10px", background: P.surface, borderRadius: 8, border: `1px solid ${P.border}`, marginBottom: 6, opacity: a.cost && !canAfford(a.cost) ? 0.4 : 1, cursor: a.cost ? (canAfford(a.cost) ? "pointer" : "not-allowed") : "default" }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: a.type === "spell" ? P.hope : P.text }}>
+                              {a.type === "primary" ? "⚔ " : a.type === "secondary" ? "🛡 " : "✦ "}{a.label}
+                            </div>
+                            {a.sub && <div style={{ fontSize: 10, color: P.textMuted, marginTop: 2, whiteSpace: "pre-line", lineHeight: 1.45 }}>{a.sub}</div>}
+                          </div>
+                          {a.detail && (
+                            <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: a.cost ? costColor : P.textMuted, whiteSpace: "nowrap", marginLeft: 8, flexShrink: 0 }}>{a.detail}</span>
+                          )}
+                        </div>
+                      );
+                    }
+                    // Feature row
+                    const { key, icon, name, nameColor, source, summary, fullText, cost, costText, costColor, optionalCost, clickCost } = item;
+                    const affordable = canAfford(clickCost);
+                    const expanded = expandedRows.has(key);
+                    return (
+                      <div key={key} style={{ marginBottom: 6 }}>
+                        <div
+                          onClick={() => { if (clickCost && affordable) spendCost(clickCost); }}
+                          style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: P.surface, borderRadius: expanded ? "8px 8px 0 0" : 8, border: `1px solid ${P.border}`, borderBottom: expanded ? "none" : `1px solid ${P.border}`, opacity: clickCost && !affordable ? 0.4 : 1, cursor: clickCost ? (affordable ? "pointer" : "not-allowed") : "default" }}>
+                          {icon}
+                          <div style={{ flexShrink: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: nameColor }}>{name}</div>
+                            <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{source}</div>
+                          </div>
+                          <div style={{ flex: 1, fontSize: 11, color: P.textMuted, lineHeight: 1.4, minWidth: 0 }}>{summary}</div>
+                          {costText && (
+                            <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: costColor, whiteSpace: "nowrap", flexShrink: 0 }}>{costText}</span>
+                          )}
+                          {fullText && (
+                            <span
+                              onClick={(e) => { e.stopPropagation(); toggleExpand(key); }}
+                              style={{ fontSize: 14, color: P.textMuted, flexShrink: 0, cursor: "pointer", display: "inline-block", transition: "transform 0.2s", transform: expanded ? "rotate(0deg)" : "rotate(180deg)" }}>
+                              ▾
+                            </span>
+                          )}
+                        </div>
+                        {fullText && expanded && (
+                          <div style={{ fontSize: 11, color: P.textMuted, lineHeight: 1.65, whiteSpace: "pre-line", padding: "8px 12px", background: P.surface + "88", borderRadius: "0 0 8px 8px", border: `1px solid ${P.border}`, borderTop: "none" }}>
+                            {fullText}
+                            {optionalCost && (
+                              <div
+                                onClick={(e) => { e.stopPropagation(); if (canAfford(optionalCost)) spendCost(optionalCost); }}
+                                style={{ fontSize: 10, fontWeight: 700, fontFamily: mono, color: optionalCost.type === "hope" ? P.hope : P.stress, marginTop: 8, padding: "4px 10px", border: `1px dashed ${optionalCost.type === "hope" ? P.hope + "66" : P.stress + "66"}`, borderRadius: 6, display: "inline-block", cursor: canAfford(optionalCost) ? "pointer" : "not-allowed", opacity: canAfford(optionalCost) ? 1 : 0.45 }}>
+                                ⚡ {optionalCost.amount} {optionalCost.type === "hope" ? "Hope" : "Stress"} → {optionalCost.label}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </Card>
               );
-            })}
-          </Card>
-            </>
-            }
+            })()}
           </div>
 
           {/* __ Active Domain Cards collapsible __ */}
@@ -398,10 +586,10 @@ export function PlayTab({
               <span style={{ display:"inline-block", transition:"transform 0.2s", transform:cardsOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
             </div>
             {cardsOpen && <>
-          {/* Active Domain Cards */}
-          {c.selectedCards.length > 0 && <Card>
+          {/* Active Domain Cards — passive: true cards only (active cards appear in Quick Actions) */}
+          {c.selectedCards.filter(key => { const [d,n] = key.split("::"); const card = (DOMAIN_CARDS[d]||[]).find(cd=>cd.name===n); return card && card.passive === true; }).length > 0 && <Card>
             <Lbl>Active Domain Cards</Lbl>
-            {c.selectedCards.map(key => {
+            {c.selectedCards.filter(key => { const [d,n] = key.split("::"); const card = (DOMAIN_CARDS[d]||[]).find(cd=>cd.name===n); return card && card.passive === true; }).map(key => {
               const [domain, name] = key.split("::");
               const card = (DOMAIN_CARDS[domain] || []).find(c => c.name === name);
               if (!card) return null;
@@ -448,31 +636,32 @@ export function PlayTab({
               <span style={{ display:"inline-block", transition:"transform 0.2s", transform:passivesOpen ? "rotate(0deg)" : "rotate(180deg)", color:P.textMuted }}>▾</span>
             </div>
             {passivesOpen && <>
-          {/* Passives — ancestry/community/subclass/class non-active effects */}
+          {/* Passives — passive: true features from all sources */}
           {(() => {
             const passives = [];
-            const mechFeatures = ["Kick","Elemental Breath","Luckbender","Wings","Charge","Fungril Network","Death Connection","Retract","Reach","Danger Sense","Internal Compass","Adaptability","Dread Visage","Retracting Claws","Tusks","Long Tongue"];
 
-            // Ancestry passive features (those NOT already in Quick Actions)
+            // Ancestry features where passive: true
             getActiveAncestryFeatures(c).forEach(feat => {
-              if (!feat || mechFeatures.includes(feat.name)) return;
+              if (!feat || feat.passive === false) return;
               passives.push({ source: c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry, name: feat.name, desc: feat.text });
             });
 
-            // Community feature (always shown for reference)
+            // Community feature where passive: true
             if (c.community && COMMUNITIES[c.community]) {
               const ct = COMMUNITIES[c.community];
-              passives.push({ source: c.community, name: ct.name, desc: ct.text });
+              if (ct.passive !== false) {
+                passives.push({ source: c.community, name: ct.name, desc: ct.text });
+              }
             }
 
-            // Subclass features (subclassLevel-gated)
+            // Subclass features where passive: true and tier unlocked
             if (sub) {
               [
                 { obj: sub.foundation,     minSubLv: 1, tier: "Foundation" },
                 { obj: sub.specialization, minSubLv: 2, tier: "Specialization" },
                 { obj: sub.mastery,        minSubLv: 3, tier: "Mastery" },
               ].forEach(({ obj, minSubLv, tier }) => {
-                if (!obj || subclassLevel < minSubLv) return;
+                if (!obj || subclassLevel < minSubLv || obj.passive === false) return;
                 passives.push({
                   source: `${c.subclass} · ${tier}`,
                   name: obj.name || tier,
@@ -481,12 +670,20 @@ export function PlayTab({
               });
             }
 
-            // Class features
+            // Class features where passive: true
             if (cls) {
-              cls.classFeatures.forEach(feat => {
+              cls.classFeatures.filter(f => f.passive !== false).forEach(feat => {
                 passives.push({ source: c.className, name: feat.name, desc: feat.text });
               });
             }
+
+            // Passive domain cards from loadout
+            c.selectedCards.forEach(key => {
+              const [domain, cardName] = key.split("::");
+              const card = (DOMAIN_CARDS[domain] || []).find(cd => cd.name === cardName);
+              if (!card || card.passive === false) return;
+              passives.push({ source: domain, name: card.name, desc: card.text });
+            });
 
             if (passives.length === 0) return null;
             return (

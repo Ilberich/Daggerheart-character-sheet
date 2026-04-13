@@ -17,6 +17,7 @@ export function PlayTab({
   sub, subclassLevel, cls,
 }) {
   return <>
+          <div style={{ position: "sticky", top: 0, zIndex: 10, background: P.bg, display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Trackers */}
           <Card>
             <div style={{ display: "flex", justifyContent: "space-around", textAlign: "center", marginBottom: 10 }}>
@@ -42,6 +43,17 @@ export function PlayTab({
               <span>Minor: &lt;{mT} → 1HP</span><span>Major: {mT}–{sT-1} → 2HP</span><span>Severe: {sT}+ → 3HP</span>
             </div>
           </Card>
+          <Card>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+              {actions.filter(a => a.type === "trait").map((a, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 8px", background: P.surface, borderRadius: 6, border: `1px solid ${P.border}` }}>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{a.label.replace(" Roll", "")}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, fontFamily: mono, color: parseInt(a.detail) > 0 ? P.hp : parseInt(a.detail) < 0 ? P.fear : P.textMuted }}>{a.detail}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+          </div>
 
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -383,15 +395,6 @@ export function PlayTab({
                 </div>
               );
             })}
-            <div style={{ marginTop: 8 }}><Lbl>Trait Rolls</Lbl></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-              {actions.filter(a => a.type === "trait").map((a, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 8px", background: P.surface, borderRadius: 6, border: `1px solid ${P.border}` }}>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>{a.label.replace(" Roll", "")}</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, fontFamily: mono, color: parseInt(a.detail) > 0 ? P.hp : parseInt(a.detail) < 0 ? P.fear : P.textMuted }}>{a.detail}</span>
-                </div>
-              ))}
-            </div>
           </Card>
 
           {/* Active Domain Cards */}

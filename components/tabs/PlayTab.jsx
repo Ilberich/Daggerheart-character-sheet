@@ -540,23 +540,27 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                       <div key={key} style={{ marginBottom: 6 }}>
                         <div
                           onClick={() => { if (clickCost && affordable) spendCost(clickCost); }}
-                          style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: P.surface, borderRadius: expanded ? "8px 8px 0 0" : 8, border: `1px solid ${P.border}`, borderBottom: expanded ? "none" : `1px solid ${P.border}`, opacity: clickCost && !affordable ? 0.4 : 1, cursor: clickCost ? (affordable ? "pointer" : "not-allowed") : "default" }}>
-                          {icon}
-                          <div style={{ flexShrink: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: nameColor }}>{name}</div>
-                            <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{source}</div>
+                          style={{ padding: "8px 10px", background: P.surface, borderRadius: expanded ? "8px 8px 0 0" : 8, border: `1px solid ${P.border}`, borderBottom: expanded ? "none" : `1px solid ${P.border}`, opacity: clickCost && !affordable ? 0.4 : 1, cursor: clickCost ? (affordable ? "pointer" : "not-allowed") : "default" }}>
+                          {/* Header row: icon · name · source · cost badge · chevron */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {icon}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: nameColor }}>{name}</span>
+                              <span style={{ fontSize: 9, color: P.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8 }}>{source}</span>
+                            </div>
+                            {costText && (
+                              <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: costColor, whiteSpace: "nowrap", flexShrink: 0 }}>{costText}</span>
+                            )}
+                            {fullText && (
+                              <span
+                                onClick={(e) => { e.stopPropagation(); toggleExpand(key); }}
+                                style={{ fontSize: 14, color: P.textMuted, flexShrink: 0, cursor: "pointer", display: "inline-block", transition: "transform 0.2s", transform: expanded ? "rotate(0deg)" : "rotate(180deg)" }}>
+                                ▾
+                              </span>
+                            )}
                           </div>
-                          <div style={{ flex: 1, fontSize: 11, color: P.textMuted, lineHeight: 1.4, minWidth: 0 }}>{summary}</div>
-                          {costText && (
-                            <span style={{ fontSize: 11, fontWeight: 700, fontFamily: mono, color: costColor, whiteSpace: "nowrap", flexShrink: 0 }}>{costText}</span>
-                          )}
-                          {fullText && (
-                            <span
-                              onClick={(e) => { e.stopPropagation(); toggleExpand(key); }}
-                              style={{ fontSize: 14, color: P.textMuted, flexShrink: 0, cursor: "pointer", display: "inline-block", transition: "transform 0.2s", transform: expanded ? "rotate(0deg)" : "rotate(180deg)" }}>
-                              ▾
-                            </span>
-                          )}
+                          {/* Summary below, full width */}
+                          {summary && <div style={{ fontSize: 11, color: P.textMuted, lineHeight: 1.4, marginTop: 4, paddingLeft: 16 }}>{summary}</div>}
                         </div>
                         {fullText && expanded && (
                           <div style={{ fontSize: 11, color: P.textMuted, lineHeight: 1.65, whiteSpace: "pre-line", padding: "8px 12px", background: P.surface + "88", borderRadius: "0 0 8px 8px", border: `1px solid ${P.border}`, borderTop: "none" }}>

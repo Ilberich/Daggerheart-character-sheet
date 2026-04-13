@@ -822,6 +822,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
         );
       })()}
 
+      <div style={{ position: "sticky", top: 0, zIndex: 20, background: P.bg }}>
             {/* ═══ HEADER ═══ */}
       <div style={{ padding: "12px 14px 10px", background: `linear-gradient(135deg, ${P.surface} 0%, ${P.bg} 100%)`, borderBottom: `1px solid ${P.border}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -922,6 +923,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
       </div>
 
       <TabBar tabs={tabs} active={tab} onChange={setTab} glowing={glowingTabs} />
+      </div>
       <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 14 }}>
 
         {/* ═══ PLAY TAB ═══ */}

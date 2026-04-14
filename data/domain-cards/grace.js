@@ -10,6 +10,7 @@ export const Grace = [
     level: 1, name: "Enrapture", type: "Spell", recallCost: 0,
     cost: null, optionalCost: { type: "stress", amount: 1, label: "Target marks Stress" },
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Spellcast Roll · Close · Enraptured · Optional: 1 Stress (once/rest) → target marks Stress",
     text: "Make a Spellcast Roll against a target within Close range. On a success, they become temporarily Enraptured. While Enraptured, a target's attention is fixed on you, narrowing their field of view and drowning out any sound but your voice. Once per rest on a success, you can mark a Stress to force the Enraptured target to mark a Stress as well."
   },
@@ -32,6 +33,7 @@ export const Grace = [
     level: 2, name: "Troublemaker", type: "Ability", recallCost: 2,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Taunt/provoke within Far · Presence Roll · Once per rest on success: roll Proficiency d4s · Target marks Stress = highest result",
     text: "When you taunt or provoke a target within Far range, make a Presence Roll against them. Once per rest on a success, roll a number of d4s equal to your Proficiency. The target must mark Stress equal to the highest result rolled."
   },
@@ -40,6 +42,7 @@ export const Grace = [
     level: 3, name: "Hypnotic Shimmer", type: "Spell", recallCost: 1,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Spellcast Roll · Close (all in front) · Once per rest on success: Stunned + mark Stress · Stunned: no reactions or actions until cleared",
     text: "Make a Spellcast Roll against all adversaries in front of you within Close range. Once per rest on a success, create an illusion of flashing colors and lights that temporarily Stuns targets you succeed against and forces them to mark a Stress. While Stunned, they can't use reactions and can't take any other actions until they clear this condition."
   },
@@ -55,6 +58,7 @@ export const Grace = [
     level: 4, name: "Soothing Speech", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Short rest · Comfort ally while using Tend to Wounds → +1 HP cleared on them · You also clear 2 HP",
     text: "During a short rest, when you take the time to comfort another character while using the Tend to Wounds downtime move on them, clear an additional Hit Point on that character. When you do, you also clear 2 Hit Points."
   },

@@ -3,6 +3,7 @@ export const Bone = [
     level: 1, name: "Deft Maneuvers", type: "Ability", recallCost: 0,
     cost: { type: "stress", amount: 1 },
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "1 Stress · Once per rest · Sprint to Far (no Agility Roll) · +1 attack if immediately attack from Melee",
     text: "Once per rest, mark a Stress to sprint anywhere within Far range without making an Agility Roll to get there.\nIf you end this movement within Melee range of an adversary and immediately make an attack against them, gain a +1 bonus to the attack roll."
   },
@@ -78,6 +79,7 @@ export const Bone = [
     level: 5, name: "Signature Move", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Name and describe your move · Once per rest · Perform it as part of an action → roll d20 as Hope Die · On success: clear a Stress",
     text: "Name and describe your signature combat move. Once per rest, when you perform this signature move as part of an action you're taking, you can roll a d20 as your Hope Die. On a success, clear a Stress."
   },

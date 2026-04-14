@@ -10,6 +10,7 @@ export const Splendor = [
     level: 1, name: "Mending Touch", type: "Spell", recallCost: 1,
     cost: { type: "hope", amount: 2 },
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "2 Hope · Touch · Clear 1 HP or 1 Stress · Takes a few minutes · Once/long rest: bonding moment → 2 HP or 2 Stress",
     text: "You lay your hands upon a creature and channel healing magic to close their wounds. When you can take a few minutes to focus on the target you're helping, you can spend 2 Hope to clear a Hit Point or a Stress on them.\nOnce per long rest, when you spend this healing time learning something new about them or revealing something about yourself, you can clear 2 Hit Points or 2 Stress on them instead."
   },
@@ -17,6 +18,7 @@ export const Splendor = [
     level: 1, name: "Reassurance", type: "Ability", recallCost: 0,
     cost: null,
     passive: true,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Reaction: After ally's action roll, before consequences · Ally rerolls Duality Dice · Once per rest",
     text: "Once per rest, after an ally attempts an action roll but before the consequences take place, you can offer assistance or words of support. When you do, your ally can reroll their dice."
   },
@@ -32,6 +34,7 @@ export const Splendor = [
     level: 2, name: "Healing Hands", type: "Spell", recallCost: 1,
     cost: { type: "stress", amount: 1 },
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Spellcast Roll (13) · Melee (other creature) · Success + Stress: clear 2 HP or 2 Stress · Failure + Stress: clear 1 HP or 1 Stress · Once per long rest per target",
     text: "Make a Spellcast Roll (13) and target a creature other than yourself within Melee range. On a success, mark a Stress to clear 2 Hit Points or 2 Stress on the target. On a failure, mark a Stress to clear a Hit Point or a Stress on the target. You can't heal the same target again until your next long rest."
   },
@@ -40,6 +43,7 @@ export const Splendor = [
     level: 3, name: "Second Wind", type: "Ability", recallCost: 2,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Succeed on attack → clear 3 Stress or 1 HP · Hope success: also clear 3 Stress or 1 HP on Close ally",
     text: "Once per rest, when you succeed on an attack against an adversary, you can clear 3 Stress or a Hit Point. On a success with Hope, you also clear 3 Stress or a Hit Point on an ally within Close range of you."
   },
@@ -55,6 +59,7 @@ export const Splendor = [
     level: 4, name: "Divination", type: "Spell", recallCost: 1,
     cost: { type: "hope", amount: 3 },
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Once per long rest · 3 Hope → ask one yes/no question about near-future event, person, place, or situation",
     text: "Once per long rest, spend 3 Hope to reach out to the forces beyond and ask one \"yes or no\" question about an event, person, place, or situation in the near future. For a moment, the present falls away and you see the answer before you."
   },
@@ -77,6 +82,7 @@ export const Splendor = [
     level: 5, name: "Smite", type: "Spell", recallCost: 2,
     cost: { type: "hope", amount: 3 },
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · 3 Hope → charge smite · Next successful weapon attack: double damage roll · Deals magic damage regardless of weapon type",
     text: "Once per rest, spend 3 Hope to charge your powerful smite. When you next successfully attack with a weapon, double the result of your damage roll. This attack deals magic damage regardless of the weapon's damage type."
   },

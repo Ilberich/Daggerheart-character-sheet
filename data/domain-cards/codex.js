@@ -32,6 +32,7 @@ export const Codex = [
     level: 2, name: "Book of Vagras", type: "Grimoire", recallCost: 2,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Runic Lock: Spellcast Roll (15) · Touch closeable object · Once per rest → lock for chosen creatures only\nArcane Door: Spellcast Roll (13) · No Melee adversaries · 1 Hope → portal to Far point · Closes after one use\nReveal: Spellcast Roll · Reveal anything magically hidden within Close",
     text: "Runic Lock: Make a Spellcast Roll (15) on an object you're touching that can close (such as a lock, chest, or box). Once per rest on a success, you can lock the object so it can only be opened by creatures of your choice. Someone with access to magic and an hour of time to study the spell can break it.\nArcane Door: When you have no adversaries within Melee range, make a Spellcast Roll (13). On a success, spend a Hope to create a portal from where you are to a point within Far range you can see. It closes once a creature has passed through it.\nReveal: Make a Spellcast Roll. If there is anything magically hidden within Close range, it is revealed."
   },
@@ -55,6 +56,7 @@ export const Codex = [
     level: 4, name: "Book of Exota", type: "Grimoire", recallCost: 3,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Repudiate: Reaction · Spellcast roll · Once per rest on success: interrupt magical effect\nCreate Construct: 1 Hope · Animate objects → construct obeys commands · Spellcast Roll to command · 2d10+3 physical · One at a time · Falls apart on any damage",
     text: "Repudiate: You can interrupt a magical effect taking place. Make a reaction roll using your Spellcast trait. Once per rest on a success, the effect stops and any consequences are avoided.\nCreate Construct: Spend a Hope to choose a group of objects around you and create an animated construct from them that obeys basic commands. Make a Spellcast Roll to command them to take action. When necessary, they share your Evasion and traits and their attacks deal 2d10+3 physical damage. You can only maintain one construct at a time, and they fall apart when they take any amount of damage."
   },
@@ -62,6 +64,7 @@ export const Codex = [
     level: 4, name: "Book of Grynn", type: "Grimoire", recallCost: 2,
     cost: null,
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Arcane Deflection: Once per long rest · 1 Hope → negate damage of attack on you or Very Close ally\nTime Lock: Target object within Far · Stops in time/space until next rest · Spellcast Roll to resist creature moving it\nWall of Flame: Spellcast Roll (15) · Temporary wall between two Far points · Passing through: 4d10+3 magic",
     text: "Arcane Deflection: Once per long rest, spend a Hope to negate the damage of an attack targeting you or an ally within Very Close range.\nTime Lock: Target an object within Far range. That object stops in time and space exactly where it is until your next rest. If a creature tries to move it, make a Spellcast Roll against them to maintain this spell.\nWall of Flame: Make a Spellcast Roll (15). On a success, create a temporary wall of magical flame between two points within Far range. All creatures in its path must choose a side to be on, and anything that subsequently passes through the wall takes 4d10+3 magic damage."
   },
@@ -70,6 +73,7 @@ export const Codex = [
     level: 5, name: "Manifest Wall", type: "Spell", recallCost: 2,
     cost: { type: "hope", amount: 1 },
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Spellcast Roll (15) · Once per rest · 1 Hope → magical wall between two Far points · Up to 50ft high · Creatures shunted to chosen side · Lasts until next rest",
     text: "Make a Spellcast Roll (15). Once per rest on a success, spend a Hope to create a temporary magical wall between two points within Far range. It can be up to 50 feet high and form at any angle. Creatures or objects in its path are shunted to a side of your choice. The wall stays up until your next rest or you cast Manifest Wall again."
   },
@@ -77,6 +81,7 @@ export const Codex = [
     level: 5, name: "Teleport", type: "Spell", recallCost: 2,
     cost: null,
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Once per long rest · Spellcast Roll (16) · Teleport self + willing Close targets to visited place · Familiarity bonus: very well +3, frequent +1, infrequent ±0, once −2",
     text: "Once per long rest, you can instantly teleport yourself and any number of willing targets within Close range to a place you've been before. Choose one of the following options, then make a Spellcast Roll (16):\n• If you know the place very well, gain a +3 bonus.\n• If you've visited the place frequently, gain a +1 bonus.\n• If you've visited the place infrequently, gain no modifier.\n• If you've only been there once, gain a −2 penalty.\nOn a success, you appear where you were intending to go. On a failure, you appear off course, with the range of failure determining how far off course."
   },

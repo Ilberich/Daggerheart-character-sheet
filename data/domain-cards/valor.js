@@ -44,6 +44,7 @@ export const Valor = [
     level: 3, name: "Critical Inspiration", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Critical success on attack → all Very Close allies can clear Stress or gain Hope",
     text: "Once per rest, when you critically succeed on an attack, all allies within Very Close range can clear a Stress or gain a Hope."
   },
@@ -51,6 +52,7 @@ export const Valor = [
     level: 3, name: "Lean On Me", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Once per long rest · Console/inspire ally who failed a roll → both clear 2 Stress",
     text: "Once per long rest, when you console or inspire an ally who failed an action roll, you can both clear 2 Stress."
   },
@@ -82,6 +84,7 @@ export const Valor = [
     level: 5, name: "Rousing Strike", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Critical success on attack → you + all allies who see or hear you clear 1 HP or 1d4 Stress",
     text: "Once per rest, when you critically succeed on an attack, you and all allies who can see or hear you can clear a Hit Point or 1d4 Stress."
   },

@@ -25,6 +25,7 @@ export const Blade = [
     level: 2, name: "A Soldier's Bond", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Once per long rest · Compliment or ask about someone's strengths → both gain 3 Hope",
     text: "Once per long rest, when you compliment someone or ask them about something they're good at, you can both gain 3 Hope."
   },
@@ -40,6 +41,7 @@ export const Blade = [
     level: 3, name: "Scramble", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Creature within Melee would deal damage → avoid attack and safely move out of Melee",
     text: "Once per rest, when a creature within Melee range would deal damage to you, you can avoid the attack and safely move out of Melee range of the enemy."
   },
@@ -55,6 +57,7 @@ export const Blade = [
     level: 4, name: "Deadly Focus", type: "Ability", recallCost: 2,
     cost: null,
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Focus on a target · +1 Proficiency until you attack another creature, defeat target, or battle ends",
     text: "Once per rest, you can apply all your focus toward a target of your choice. Until you attack another creature, you defeat the target, or the battle ends, gain a +1 bonus to your Proficiency."
   },

@@ -47,6 +47,7 @@ export const Sage = [
     level: 3, name: "Towering Stalk", type: "Spell", recallCost: 1,
     cost: { type: "stress", amount: 1 },
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Conjure climbable stalk within Close (height up to Far) · Optional: 1 Stress + Spellcast Roll → lift Close adversaries and drop for d8 physical",
     text: "Once per rest, you can conjure a thick, twisting stalk within Close range that can be easily climbed. Its height can grow up to Far range.\nMark a Stress to use this spell as an attack. Make a Spellcast Roll against an adversary or group of adversaries within Close range. The erupting stalk lifts targets you succeed against into the air and drops them, dealing d8 physical damage using your Proficiency."
   },
@@ -62,6 +63,7 @@ export const Sage = [
     level: 4, name: "Healing Field", type: "Spell", recallCost: 2,
     cost: null,
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Once per long rest · Burst of healing plants within Close · You + allies clear 1 HP · Optional: 2 Hope → clear 2 HP instead",
     text: "Once per long rest, you can conjure a field of healing plants around you. Everywhere within Close range of you bursts to life with vibrant nature, allowing you and all allies in the area to clear a Hit Point.\nSpend 2 Hope to allow you and all allies to clear 2 Hit Points instead."
   },
@@ -70,6 +72,7 @@ export const Sage = [
     level: 5, name: "Thorn Skin", type: "Spell", recallCost: 1,
     cost: { type: "hope", amount: 1 },
     passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · 1 Hope → sprout thorns · Tokens = Spellcast · On taking damage: spend tokens → roll that many d6s · Reduce damage by total · If attacker in Melee: deal that amount back",
     text: "Once per rest, spend a Hope to sprout thorns all over your body. When you do, place a number of tokens equal to your Spellcast trait on this card. When you take damage, you can spend any number of tokens to roll that number of d6s. Add the results together and reduce the incoming damage by that amount. If you're within Melee range of the attacker, deal that amount of damage back to them.\nWhen you take a rest, clear all unspent tokens."
   },

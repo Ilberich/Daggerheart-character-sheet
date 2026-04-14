@@ -77,6 +77,7 @@ export const Arcana = [
     level: 5, name: "Premonition", type: "Spell", recallCost: 2,
     cost: null,
     passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Once per long rest · After GM conveys roll consequences → rescind and redo the action entirely",
     text: "You can channel arcane energy to have visions of the future. Once per long rest, immediately after the GM conveys the consequences of a roll you made, you can rescind the move and consequences like they never happened and make another move instead."
   },

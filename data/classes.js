@@ -28,6 +28,7 @@ export const CLASSES = {
         },
         specialization: {
           name: "Eloquent", passive: false,
+          uses: { recharge: "session", amount: 1 },
           summary: "Once per session · Encourage ally → choose: find mundane object, Help without spending Hope, or extra downtime move",
           text: "Eloquent: Once per session, when you encourage an ally, do one of: allow them to find a mundane object/tool, Help an Ally without spending Hope, or give them an additional downtime move during their next rest."
         },
@@ -295,6 +296,7 @@ export const CLASSES = {
         spellcast: "Strength", desc: "Dominate the battlefield with a legendary weapon",
         foundation: {
           name: "Spirit Weapon / Sparing Touch", passive: false,
+          uses: { recharge: "longRest", amount: 1 },
           summary: "Spirit Weapon: Melee/Very Close weapon flies to attack within Close and returns · Mark Stress for additional target\nSparing Touch: Once per long rest · Touch → clear 2 HP or 2 Stress",
           text: "Spirit Weapon: Melee/Very Close weapon flies to attack within Close range and returns. Mark Stress for additional target.\n\nSparing Touch: Once per long rest, touch to clear 2 HP or 2 Stress."
         },
@@ -374,6 +376,7 @@ export const CLASSES = {
         },
         specialization: {
           name: "Enchanted Aid", passive: false,
+          uses: { recharge: "longRest", amount: 1 },
           summary: "Help Ally Spellcast with d8 advantage die · Once per long rest: swap ally's Duality Dice after helping",
           text: "Enchanted Aid: Help Ally Spellcast with d8 advantage die. Once per long rest, swap ally's Duality Dice after helping."
         },
@@ -426,6 +429,7 @@ export const CLASSES = {
         },
         mastery: {
           name: "Camaraderie", passive: true,
+          uses: { recharge: "session", amount: 1 },
           summary: "Passive: Extra Tag Team Roll per session · Allies only spend 2 Hope to Tag Team with you",
           text: "Camaraderie: Extra Tag Team Roll per session. Allies only spend 2 Hope to Tag Team with you."
         },
@@ -439,6 +443,7 @@ export const CLASSES = {
         },
         specialization: {
           name: "Weapon Specialist", passive: false,
+          uses: { recharge: "longRest", amount: 1 },
           summary: "On success · Spend Hope → add secondary weapon damage die · Once per long rest: reroll 1s on Slayer Dice",
           text: "Weapon Specialist: On success, spend Hope to add secondary weapon damage die. Once per long rest, reroll 1s on Slayer Dice."
         },
@@ -481,6 +486,7 @@ export const CLASSES = {
         },
         specialization: {
           name: "Accomplished / Perfect Recall", passive: false,
+          uses: { recharge: "rest", amount: 1 },
           summary: "Accomplished: Passive · Take an additional domain card\nPerfect Recall: Once per rest · Reduce Recall Cost by 1",
           text: "Accomplished: Take an additional domain card.\n\nPerfect Recall: Once per rest, reduce Recall Cost by 1."
         },

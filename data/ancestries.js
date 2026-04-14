@@ -6,7 +6,7 @@ export const ANCESTRIES = {
       text: "Purposeful Design: Decide who made you and for what purpose. Choose one Experience that aligns with this purpose and gain a permanent +1 bonus to it."
     },
     {
-      name: "Efficient", passive: false,
+      name: "Efficient", passive: true,
       summary: "On short rest · Choose a long rest move instead of a short rest move",
       text: "Efficient: When you take a short rest, you can choose a long rest move instead of a short rest move."
     },
@@ -42,7 +42,7 @@ export const ANCESTRIES = {
       text: "Quick Reactions: Mark a Stress to gain advantage on a reaction roll."
     },
     {
-      name: "Celestial Trance", passive: false,
+      name: "Celestial Trance", passive: true,
       summary: "During rest · Enter trance → choose an additional downtime move",
       text: "Celestial Trance: During a rest, drop into a trance to choose an additional downtime move."
     },
@@ -269,7 +269,7 @@ export const COMMUNITIES = {
   },
   // ── The Void v1.5 ──
   Duneborne: {
-    name: "Oasis", passive: false,
+    name: "Oasis", passive: true,
     summary: "During short rest · You or an ally can reroll a die used for a downtime action",
     text: "Oasis: During a short rest, you or an ally can reroll a die used for a downtime action."
   },

@@ -25,7 +25,6 @@ export const Blade = [
     level: 2, name: "A Soldier's Bond", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
-    uses: { recharge: "longRest", amount: 1 },
     summary: "Once per long rest · Compliment or ask about someone's strengths → both gain 3 Hope",
     text: "Once per long rest, when you compliment someone or ask them about something they're good at, you can both gain 3 Hope."
   },
@@ -41,23 +40,34 @@ export const Blade = [
     level: 3, name: "Scramble", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
-    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Creature within Melee would deal damage → avoid attack and safely move out of Melee",
     text: "Once per rest, when a creature within Melee range would deal damage to you, you can avoid the attack and safely move out of Melee range of the enemy."
   },
   {
     level: 3, name: "Versatile Fighter", type: "Ability", recallCost: 1,
-    cost: { type: "stress", amount: 1 },
     passive: false,
-    summary: "Passive: Use any trait for equipped weapon attacks · On damage: 1 Stress → use maximum result of one damage die instead of rolling",
-    text: "You can use a different character trait for an equipped weapon, rather than the trait the weapon calls for.\nWhen you deal damage, you can mark a Stress to use the maximum result of one of your damage dice instead of rolling it."
+    text: "You can use a different character trait for an equipped weapon, rather than the trait the weapon calls for.\nWhen you deal damage, you can mark a Stress to use the maximum result of one of your damage dice instead of rolling it.",
+    abilities: [
+      {
+        name: "Versatile Fighter",
+        passive: true,
+        summary: "Passive: Use any trait for equipped weapon attacks instead of the weapon's default trait",
+        text: "You can use a different character trait for an equipped weapon, rather than the trait the weapon calls for.",
+      },
+      {
+        name: "Calculated Strike",
+        passive: false,
+        cost: { type: "stress", amount: 1 },
+        summary: "On damage roll · 1 Stress → use maximum result of one damage die instead of rolling it",
+        text: "When you deal damage, you can mark a Stress to use the maximum result of one of your damage dice instead of rolling it.",
+      },
+    ],
   },
   // Level 4
   {
     level: 4, name: "Deadly Focus", type: "Ability", recallCost: 2,
     cost: null,
     passive: false,
-    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Focus on a target · +1 Proficiency until you attack another creature, defeat target, or battle ends",
     text: "Once per rest, you can apply all your focus toward a target of your choice. Until you attack another creature, you defeat the target, or the battle ends, gain a +1 bonus to your Proficiency."
   },
@@ -91,5 +101,110 @@ export const Blade = [
     }],
     summary: "On take: permanently choose two — +1 Stress slot, +1 HP slot, or +2 damage thresholds · Card vaulted permanently",
     text: "When you choose this card, permanently gain two of the following benefits:\n• One Stress slot\n• One Hit Point slot\n• +2 bonus to your damage thresholds\nThen place this card in your vault permanently."
+  },
+  // Level 6
+  {
+    level: 6, name: "Battle-Hardened", type: "Ability", recallCost: 2,
+    cost: { type: "hope", amount: 1 },
+    passive: false,
+    uses: { recharge: "longRest", amount: 1 },
+    summary: "Once per long rest · Would make a Death Move · 1 Hope → clear a Hit Point instead",
+    text: "Once per long rest when you would make a Death Move, you can spend a Hope to clear a Hit Point instead."
+  },
+  {
+    level: 6, name: "Rage Up", type: "Ability", recallCost: 1,
+    cost: { type: "stress", amount: 1 },
+    passive: false,
+    summary: "Before attack · 1 Stress → +2×Strength to damage roll · Can Rage Up twice per attack",
+    text: "Before you make an attack, you can mark a Stress to gain a bonus to your damage roll equal to twice your Strength.\nYou can Rage Up twice per attack."
+  },
+  // Level 7
+  {
+    level: 7, name: "Blade-Touched", type: "Ability", recallCost: 1,
+    cost: null,
+    passive: true,
+    summary: "Passive: 4+ Blade cards in loadout → +2 attack rolls · +4 Severe damage threshold",
+    text: "When 4 or more of the domain cards in your loadout are from the Blade domain, gain the following benefits:\n• +2 bonus to your attack rolls\n• +4 bonus to your Severe damage threshold"
+  },
+  {
+    level: 7, name: "Glancing Blow", type: "Ability", recallCost: 1,
+    cost: { type: "stress", amount: 1 },
+    passive: false,
+    summary: "On failed attack · Mark Stress → deal weapon damage using half Proficiency",
+    text: "When you fail an attack, you can mark a Stress to deal weapon damage using half your Proficiency."
+  },
+  // Level 8
+  {
+    level: 8, name: "Battle Cry", type: "Ability", recallCost: 2,
+    cost: null,
+    passive: false,
+    uses: { recharge: "longRest", amount: 1 },
+    summary: "Once per long rest · Charge into danger · All hearing allies: clear Stress + gain Hope + advantage on attacks until someone rolls Fear",
+    text: "Once per long rest, while you're charging into danger, you can muster a rousing call that inspires your allies. All allies who can hear you each clear a Stress and gain a Hope. Additionally, your allies gain advantage on attack rolls until you or an ally rolls a failure with Fear."
+  },
+  {
+    level: 8, name: "Frenzy", type: "Ability", recallCost: 3,
+    cost: null,
+    passive: false,
+    uses: { recharge: "longRest", amount: 1 },
+    summary: "Once per long rest · Frenzy until no adversaries in sight · Can't use Armor Slots · +10 damage rolls · +8 Severe threshold",
+    text: "Once per long rest, you can go into a Frenzy until there are no more adversaries within sight.\nWhile Frenzied, you can't use Armor Slots, and you gain a +10 bonus to your damage rolls and a +8 bonus to your Severe damage threshold."
+  },
+  // Level 9
+  {
+    level: 9, name: "Gore and Glory", type: "Ability", recallCost: 2,
+    cost: null,
+    passive: true,
+    text: "When you critically succeed on a weapon attack, gain an additional Hope or clear an additional Stress.\nAdditionally, when you deal enough damage to defeat an enemy, gain a Hope or clear a Stress.",
+    abilities: [
+      {
+        name: "Gore and Glory",
+        passive: true,
+        summary: "Passive: Critical success on weapon attack → gain Hope or clear Stress",
+        text: "When you critically succeed on a weapon attack, gain an additional Hope or clear an additional Stress.",
+      },
+      {
+        name: "Blood Rush",
+        passive: true,
+        summary: "Passive: Deal enough damage to defeat an enemy → gain Hope or clear Stress",
+        text: "When you deal enough damage to defeat an enemy, gain a Hope or clear a Stress.",
+      },
+    ],
+  },
+  {
+    level: 9, name: "Reaper's Strike", type: "Ability", recallCost: 3,
+    cost: { type: "hope", amount: 1 },
+    passive: false,
+    uses: { recharge: "longRest", amount: 1 },
+    summary: "Once per long rest · 1 Hope → attack roll · GM tells you which range targets it would hit · Choose one → force them to mark 5 Hit Points",
+    text: "Once per long rest, spend a Hope to make an attack roll. The GM tells you which targets within range it would succeed against. Choose one of these targets and force them to mark 5 Hit Points."
+  },
+  // Level 10
+  {
+    level: 10, name: "Battle Monster", type: "Ability", recallCost: 0,
+    cost: { type: "stress", amount: 4 },
+    passive: false,
+    summary: "Successful attack · Mark 4 Stress → target marks HP equal to your currently marked HP instead of rolling damage",
+    text: "When you make a successful attack against an adversary, you can mark 4 Stress to force the target to mark a number of Hit Points equal to the number of Hit Points you currently have marked instead of rolling for damage."
+  },
+  {
+    level: 10, name: "Onslaught", type: "Ability", recallCost: 3,
+    passive: false,
+    text: "When you successfully make an attack with your weapon, you never deal damage beneath a target's Major damage threshold (the target always marks a minimum of 2 Hit Points).\nAdditionally, when a creature within your weapon's range deals damage to an ally with an attack that doesn't include you, you can mark a Stress to force them to make a Reaction Roll (15). On a failure, the target must mark a Hit Point.",
+    abilities: [
+      {
+        name: "Relentless",
+        passive: true,
+        summary: "Passive: Successful weapon attacks always deal at least Major damage (minimum 2 HP marked)",
+        text: "When you successfully make an attack with your weapon, you never deal damage beneath a target's Major damage threshold (the target always marks a minimum of 2 Hit Points).",
+      },
+      {
+        name: "Onslaught",
+        passive: false,
+        cost: { type: "stress", amount: 1 },
+        summary: "Reaction: Creature in weapon range damages ally without targeting you · Mark Stress → Reaction Roll (15) · Fail: target marks 1 HP",
+        text: "When a creature within your weapon's range deals damage to an ally with an attack that doesn't include you, you can mark a Stress to force them to make a Reaction Roll (15). On a failure, the target must mark a Hit Point.",
+      },
+    ],
   },
 ];

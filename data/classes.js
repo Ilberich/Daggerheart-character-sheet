@@ -5,8 +5,30 @@ export const CLASSES = {
         spellcast: "Presence", desc: "Play music to bolster your allies",
         foundation: {
           name: "Gifted Performer", passive: false,
-          summary: "Once per long rest each:\nRelaxing Song: Self + Close allies clear 1 HP\nEpic Song: Close target → Vulnerable\nHeartbreaking Song: Self + Close allies gain 1 Hope",
-          text: "Gifted Performer: Describe how you perform for others. You can play each song once per long rest:\n• Relaxing Song: You and all allies within Close range clear a Hit Point.\n• Epic Song: Make a target within Close range temporarily Vulnerable.\n• Heartbreaking Song: You and all allies within Close range gain a Hope."
+          text: "Gifted Performer: Describe how you perform for others. You can play each song once per long rest:\n• Relaxing Song: You and all allies within Close range clear a Hit Point.\n• Epic Song: Make a target within Close range temporarily Vulnerable.\n• Heartbreaking Song: You and all allies within Close range gain a Hope.",
+          abilities: [
+            {
+              name: "Relaxing Song",
+              passive: false,
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · You + Close allies clear 1 Hit Point",
+              text: "You and all allies within Close range clear a Hit Point.",
+            },
+            {
+              name: "Epic Song",
+              passive: false,
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · Close target → temporarily Vulnerable",
+              text: "Make a target within Close range temporarily Vulnerable.",
+            },
+            {
+              name: "Heartbreaking Song",
+              passive: false,
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · You + Close allies gain 1 Hope",
+              text: "You and all allies within Close range gain a Hope.",
+            },
+          ],
         },
         specialization: {
           name: "Maestro", passive: true,
@@ -23,19 +45,46 @@ export const CLASSES = {
         spellcast: "Presence", desc: "Use clever wordplay and captivate crowds",
         foundation: {
           name: "Rousing Speech / Heart of a Poet", passive: false,
-          summary: "Rousing Speech: Once per long rest · Inspiring speech → Far allies clear 2 Stress\nHeart of a Poet: After impress/persuade/offend roll · 1 Hope → +d4 to roll",
-          text: "Rousing Speech: Once per long rest, give a heartfelt, inspiring speech. All allies within Far range clear 2 Stress.\n\nHeart of a Poet: After you make an action roll to impress, persuade, or offend someone, you can spend a Hope to add a d4 to the roll."
+          text: "Rousing Speech: Once per long rest, give a heartfelt, inspiring speech. All allies within Far range clear 2 Stress.\n\nHeart of a Poet: After you make an action roll to impress, persuade, or offend someone, you can spend a Hope to add a d4 to the roll.",
+          abilities: [
+            {
+              name: "Rousing Speech",
+              passive: false,
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · Give inspiring speech → all Far allies clear 2 Stress",
+              text: "Once per long rest, give a heartfelt, inspiring speech. All allies within Far range clear 2 Stress.",
+            },
+            {
+              name: "Heart of a Poet",
+              passive: false,
+              cost: { type: "hope", amount: 1 },
+              summary: "After impress/persuade/offend roll · 1 Hope → +d4 to the roll",
+              text: "After you make an action roll to impress, persuade, or offend someone, you can spend a Hope to add a d4 to the roll.",
+            },
+          ],
         },
         specialization: {
           name: "Eloquent", passive: false,
-          uses: { recharge: "session", amount: 1 },
           summary: "Once per session · Encourage ally → choose: find mundane object, Help without spending Hope, or extra downtime move",
           text: "Eloquent: Once per session, when you encourage an ally, do one of: allow them to find a mundane object/tool, Help an Ally without spending Hope, or give them an additional downtime move during their next rest."
         },
         mastery: {
           name: "Epic Poetry", passive: true,
-          summary: "Passive: Rally Die → d10 · Help an Ally: narrate as heroic memoir, roll d10 as advantage die",
-          text: "Epic Poetry: Your Rally Die increases to a d10. When you Help an Ally, narrate the moment as heroic memoir; roll a d10 as your advantage die."
+          text: "Epic Poetry: Your Rally Die increases to a d10. When you Help an Ally, narrate the moment as heroic memoir; roll a d10 as your advantage die.",
+          abilities: [
+            {
+              name: "Epic Poetry",
+              passive: true,
+              summary: "Passive: Rally Die → d10",
+              text: "Your Rally Die increases to a d10.",
+            },
+            {
+              name: "Heroic Memoir",
+              passive: true,
+              summary: "Passive: When you Help an Ally · Narrate as heroic memoir → roll d10 as advantage die",
+              text: "When you Help an Ally, narrate the moment as heroic memoir; roll a d10 as your advantage die.",
+            },
+          ],
         },
       },
     },
@@ -79,13 +128,43 @@ export const CLASSES = {
         spellcast: "Instinct", desc: "Use powerful magic to heal your party",
         foundation: {
           name: "Clarity of Nature / Regeneration", passive: false,
-          summary: "Clarity of Nature: Once per long rest · Create serenity within Close · Rest clears Stress = Instinct for you + allies\nRegeneration: Touch · 3 Hope → target clears 1d4 HP",
-          text: "Clarity of Nature: Once per long rest, create serenity within Close range. Resting clears Stress equal to your Instinct among you and allies.\n\nRegeneration: Touch a creature, spend 3 Hope. They clear 1d4 HP."
+          text: "Clarity of Nature: Once per long rest, create serenity within Close range. Resting clears Stress equal to your Instinct among you and allies.\n\nRegeneration: Touch a creature, spend 3 Hope. They clear 1d4 HP.",
+          abilities: [
+            {
+              name: "Clarity of Nature",
+              passive: false,
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · Create serenity within Close · During rest: you + allies clear Stress = Instinct",
+              text: "Once per long rest, create serenity within Close range. Resting clears Stress equal to your Instinct among you and allies.",
+            },
+            {
+              name: "Regeneration",
+              passive: false,
+              cost: { type: "hope", amount: 3 },
+              summary: "Touch · 3 Hope → target clears 1d4 Hit Points",
+              text: "Touch a creature, spend 3 Hope. They clear 1d4 HP.",
+            },
+          ],
         },
         specialization: {
           name: "Regenerative Reach / Warden's Protection", passive: false,
-          summary: "Regenerative Reach: Use Regeneration within Very Close range\nWarden's Protection: Once per long rest · 2 Hope → clear 2 HP on 1d4 allies within Close",
-          text: "Regenerative Reach: Use Regeneration within Very Close range.\n\nWarden's Protection: Once per long rest, spend 2 Hope to clear 2 HP on 1d4 allies within Close range."
+          text: "Regenerative Reach: Use Regeneration within Very Close range.\n\nWarden's Protection: Once per long rest, spend 2 Hope to clear 2 HP on 1d4 allies within Close range.",
+          abilities: [
+            {
+              name: "Regenerative Reach",
+              passive: true,
+              summary: "Passive: Use Regeneration within Very Close range (instead of Touch)",
+              text: "Use Regeneration within Very Close range.",
+            },
+            {
+              name: "Warden's Protection",
+              passive: false,
+              cost: { type: "hope", amount: 2 },
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · 2 Hope → 1d4 Close allies each clear 2 HP",
+              text: "Once per long rest, spend 2 Hope to clear 2 HP on 1d4 allies within Close range.",
+            },
+          ],
         },
         mastery: {
           name: "Defender", passive: true,
@@ -122,20 +201,65 @@ export const CLASSES = {
         foundation: {
           name: "Unwavering / Iron Will", passive: true,
           statEffects: [{ stat: "thresholds", amount: 1 }],
-          summary: "Unwavering: Passive · +1 to all damage thresholds (permanent)\nIron Will: On physical damage · Mark extra Armor Slot → reduce severity",
-          text: "Unwavering: Permanent +1 to damage thresholds.\n\nIron Will: When you take physical damage, mark an additional Armor Slot to reduce severity."
+          text: "Unwavering: Permanent +1 to damage thresholds.\n\nIron Will: When you take physical damage, mark an additional Armor Slot to reduce severity.",
+          abilities: [
+            {
+              name: "Unwavering",
+              passive: true,
+              statEffects: [{ stat: "thresholds", amount: 1 }],
+              summary: "Passive: +1 to all damage thresholds (permanent)",
+              text: "Permanent +1 to damage thresholds.",
+            },
+            {
+              name: "Iron Will",
+              passive: false,
+              cost: { type: "armor", amount: 1 },
+              summary: "Reaction: On physical damage · Mark extra Armor Slot → reduce severity by one threshold",
+              text: "When you take physical damage, mark an additional Armor Slot to reduce severity.",
+            },
+          ],
         },
         specialization: {
           name: "Unrelenting / Partners-in-Arms", passive: true,
           statEffects: [{ stat: "thresholds", amount: 1 }],
-          summary: "Unrelenting: Passive · +2 to all damage thresholds (permanent)\nPartners-in-Arms: Very Close ally takes damage · Mark Armor Slot → reduce severity by one threshold",
-          text: "Unrelenting: Permanent +2 to damage thresholds.\n\nPartners-in-Arms: When an ally within Very Close takes damage, mark an Armor Slot to reduce severity by one threshold."
+          text: "Unrelenting: Permanent +2 to damage thresholds.\n\nPartners-in-Arms: When an ally within Very Close takes damage, mark an Armor Slot to reduce severity by one threshold.",
+          abilities: [
+            {
+              name: "Unrelenting",
+              passive: true,
+              statEffects: [{ stat: "thresholds", amount: 1 }],
+              summary: "Passive: +2 to all damage thresholds (permanent, stacks with Unwavering)",
+              text: "Permanent +2 to damage thresholds.",
+            },
+            {
+              name: "Partners-in-Arms",
+              passive: false,
+              cost: { type: "armor", amount: 1 },
+              summary: "Reaction: Very Close ally takes damage · Mark Armor Slot → reduce severity by one threshold",
+              text: "When an ally within Very Close takes damage, mark an Armor Slot to reduce severity by one threshold.",
+            },
+          ],
         },
         mastery: {
           name: "Undaunted / Loyal Protector", passive: true,
           statEffects: [{ stat: "thresholds", amount: 1 }],
-          summary: "Undaunted: Passive · +3 to all damage thresholds (permanent)\nLoyal Protector: Close ally at 2 or fewer HP would take damage · Mark Stress → sprint to them and take damage instead",
-          text: "Undaunted: Permanent +3 to damage thresholds.\n\nLoyal Protector: When an ally within Close has 2 or fewer HP and would take damage, mark Stress to sprint to them and take the damage."
+          text: "Undaunted: Permanent +3 to damage thresholds.\n\nLoyal Protector: When an ally within Close has 2 or fewer HP and would take damage, mark Stress to sprint to them and take the damage.",
+          abilities: [
+            {
+              name: "Undaunted",
+              passive: true,
+              statEffects: [{ stat: "thresholds", amount: 1 }],
+              summary: "Passive: +3 to all damage thresholds (permanent, stacks with Unwavering + Unrelenting)",
+              text: "Permanent +3 to damage thresholds.",
+            },
+            {
+              name: "Loyal Protector",
+              passive: false,
+              cost: { type: "stress", amount: 1 },
+              summary: "Reaction: Close ally at 2 or fewer HP would take damage · Mark Stress → sprint to them and take damage instead",
+              text: "When an ally within Close has 2 or fewer HP and would take damage, mark Stress to sprint to them and take the damage.",
+            },
+          ],
         },
       },
       Vengeance: {
@@ -143,8 +267,23 @@ export const CLASSES = {
         foundation: {
           name: "At Ease / Revenge", passive: false,
           statEffects: [{ stat: "stress", amount: 1 }],
-          summary: "At Ease: Passive · +1 Stress slot\nRevenge: Melee adversary succeeds attack against you · 2 Stress → they mark 1 HP",
-          text: "At Ease: Gain an additional Stress slot.\n\nRevenge: When an adversary within Melee succeeds on an attack against you, mark 2 Stress to force them to mark a HP."
+          text: "At Ease: Gain an additional Stress slot.\n\nRevenge: When an adversary within Melee succeeds on an attack against you, mark 2 Stress to force them to mark a HP.",
+          abilities: [
+            {
+              name: "At Ease",
+              passive: true,
+              statEffects: [{ stat: "stress", amount: 1 }],
+              summary: "Passive: +1 Stress slot",
+              text: "Gain an additional Stress slot.",
+            },
+            {
+              name: "Revenge",
+              passive: false,
+              cost: { type: "stress", amount: 2 },
+              summary: "Melee adversary succeeds on attack against you · 2 Stress → they mark 1 Hit Point",
+              text: "When an adversary within Melee succeeds on an attack against you, mark 2 Stress to force them to mark a HP.",
+            },
+          ],
         },
         specialization: {
           name: "Act of Reprisal", passive: true,
@@ -185,21 +324,62 @@ export const CLASSES = {
         },
         specialization: {
           name: "Expert Training / Battle-Bonded", passive: true,
-          summary: "Expert Training: Additional companion level-up option\nBattle-Bonded: Passive · Attacked while within companion's Melee range → +2 Evasion",
-          text: "Expert Training: Choose an additional companion level-up option.\n\nBattle-Bonded: When attacked while within companion's Melee range, +2 Evasion."
+          text: "Expert Training: Choose an additional companion level-up option.\n\nBattle-Bonded: When attacked while within companion's Melee range, +2 Evasion.",
+          abilities: [
+            {
+              name: "Expert Training",
+              passive: true,
+              summary: "Passive: Choose an additional companion level-up option",
+              text: "Choose an additional companion level-up option.",
+            },
+            {
+              name: "Battle-Bonded",
+              passive: true,
+              summary: "Passive: Attacked while within companion's Melee range → +2 Evasion against that attack",
+              text: "When attacked while within companion's Melee range, +2 Evasion.",
+            },
+          ],
         },
         mastery: {
           name: "Advanced Training / Loyal Friend", passive: true,
-          summary: "Advanced Training: Two additional companion level-up options\nLoyal Friend: Once per long rest · Damage would mark companion's last Stress or your last HP within Close → one takes damage instead",
-          text: "Advanced Training: Two additional companion level-up options.\n\nLoyal Friend: Once per long rest, when damage would mark companion's last Stress or your last HP within Close range, one takes damage instead."
+          text: "Advanced Training: Two additional companion level-up options.\n\nLoyal Friend: Once per long rest, when damage would mark companion's last Stress or your last HP within Close range, one takes damage instead.",
+          abilities: [
+            {
+              name: "Advanced Training",
+              passive: true,
+              summary: "Passive: Two additional companion level-up options",
+              text: "Two additional companion level-up options.",
+            },
+            {
+              name: "Loyal Friend",
+              passive: false,
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · Damage would mark companion's last Stress or your last HP within Close → one takes damage instead",
+              text: "Once per long rest, when damage would mark companion's last Stress or your last HP within Close range, one takes damage instead.",
+            },
+          ],
         },
       },
       Wayfinder: {
         spellcast: "Agility", desc: "Hunt your prey and strike with deadly force",
         foundation: {
           name: "Ruthless Predator / Path Forward", passive: false,
-          summary: "Ruthless Predator: On damage roll · Mark Stress → +1 Proficiency · Severe damage forces adversary to mark Stress\nPath Forward: Passive · Identify shortest path to a previously visited place",
-          text: "Ruthless Predator: On a damage roll, mark Stress for +1 Proficiency. Severe damage forces adversary to mark Stress.\n\nPath Forward: Identify shortest path to a previously visited place."
+          text: "Ruthless Predator: On a damage roll, mark Stress for +1 Proficiency. Severe damage forces adversary to mark Stress.\n\nPath Forward: Identify shortest path to a previously visited place.",
+          abilities: [
+            {
+              name: "Ruthless Predator",
+              passive: false,
+              cost: { type: "stress", amount: 1 },
+              summary: "On damage roll · Mark Stress → +1 Proficiency · Severe damage forces adversary to mark Stress",
+              text: "On a damage roll, mark Stress for +1 Proficiency. Severe damage forces adversary to mark Stress.",
+            },
+            {
+              name: "Path Forward",
+              passive: true,
+              summary: "Passive: Identify the shortest path to any previously visited place",
+              text: "Identify shortest path to a previously visited place.",
+            },
+          ],
         },
         specialization: {
           name: "Elusive Predator", passive: true,
@@ -240,14 +420,42 @@ export const CLASSES = {
         },
         specialization: {
           name: "Dark Cloud / Adrenaline", passive: false,
-          summary: "Dark Cloud: Spellcast Roll (15) · Create dark cloud within Close · Cloaked from adversaries it blocks\nAdrenaline: Passive · While Vulnerable → add level to damage",
-          text: "Dark Cloud: Spellcast Roll (15) to create dark cloud within Close range. Cloaked from adversaries it blocks.\n\nAdrenaline: While Vulnerable, add level to damage."
+          text: "Dark Cloud: Spellcast Roll (15) to create dark cloud within Close range. Cloaked from adversaries it blocks.\n\nAdrenaline: While Vulnerable, add level to damage.",
+          abilities: [
+            {
+              name: "Dark Cloud",
+              passive: false,
+              summary: "Spellcast Roll (15) · Create dark cloud within Close · You are Cloaked from adversaries it blocks",
+              text: "Spellcast Roll (15) to create dark cloud within Close range. Cloaked from adversaries it blocks.",
+            },
+            {
+              name: "Adrenaline",
+              passive: true,
+              summary: "Passive: While Vulnerable → add your level to damage rolls",
+              text: "While Vulnerable, add level to damage.",
+            },
+          ],
         },
         mastery: {
           name: "Fleeting Shadow / Vanishing Act", passive: false,
           statEffects: [{ stat: "evasion", amount: 1 }],
-          summary: "Fleeting Shadow: Passive · Permanent +1 Evasion · Shadow Stepper extends to Very Far\nVanishing Act: Mark Stress → Cloaked · Auto-clear Restrained · Lasts until Fear roll or next rest",
-          text: "Fleeting Shadow: Permanent +1 Evasion. Shadow Stepper extends to Very Far.\n\nVanishing Act: Mark Stress to become Cloaked. Auto-clear Restrained. Lasts until Fear roll or next rest."
+          text: "Fleeting Shadow: Permanent +1 Evasion. Shadow Stepper extends to Very Far.\n\nVanishing Act: Mark Stress to become Cloaked. Auto-clear Restrained. Lasts until Fear roll or next rest.",
+          abilities: [
+            {
+              name: "Fleeting Shadow",
+              passive: true,
+              statEffects: [{ stat: "evasion", amount: 1 }],
+              summary: "Passive: Permanent +1 Evasion · Shadow Stepper range extends to Very Far",
+              text: "Permanent +1 Evasion. Shadow Stepper extends to Very Far.",
+            },
+            {
+              name: "Vanishing Act",
+              passive: false,
+              cost: { type: "stress", amount: 1 },
+              summary: "Mark Stress → Cloaked · Auto-clear Restrained · Lasts until Fear roll or next rest",
+              text: "Mark Stress to become Cloaked. Auto-clear Restrained. Lasts until Fear roll or next rest.",
+            },
+          ],
         },
       },
       Syndicate: {
@@ -296,9 +504,22 @@ export const CLASSES = {
         spellcast: "Strength", desc: "Dominate the battlefield with a legendary weapon",
         foundation: {
           name: "Spirit Weapon / Sparing Touch", passive: false,
-          uses: { recharge: "longRest", amount: 1 },
-          summary: "Spirit Weapon: Melee/Very Close weapon flies to attack within Close and returns · Mark Stress for additional target\nSparing Touch: Once per long rest · Touch → clear 2 HP or 2 Stress",
-          text: "Spirit Weapon: Melee/Very Close weapon flies to attack within Close range and returns. Mark Stress for additional target.\n\nSparing Touch: Once per long rest, touch to clear 2 HP or 2 Stress."
+          text: "Spirit Weapon: Melee/Very Close weapon flies to attack within Close range and returns. Mark Stress for additional target.\n\nSparing Touch: Once per long rest, touch to clear 2 HP or 2 Stress.",
+          abilities: [
+            {
+              name: "Spirit Weapon",
+              passive: false,
+              summary: "Melee/Very Close weapon flies to attack within Close · Returns · Mark Stress → additional target",
+              text: "Melee/Very Close weapon flies to attack within Close range and returns. Mark Stress for additional target.",
+            },
+            {
+              name: "Sparing Touch",
+              passive: false,
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · Touch → clear 2 HP or 2 Stress",
+              text: "Once per long rest, touch to clear 2 HP or 2 Stress.",
+            },
+          ],
         },
         specialization: {
           name: "Devout", passive: true,
@@ -326,8 +547,22 @@ export const CLASSES = {
         mastery: {
           name: "Ascendant / Power of the Gods", passive: true,
           statEffects: [{ stat: "severeThreshold", amount: 4 }],
-          summary: "Ascendant: Passive · +4 to Severe threshold (permanent)\nPower of the Gods: Wings of Light deals 1d12 instead of 1d8",
-          text: "Ascendant: Permanent +4 to Severe threshold.\n\nPower of the Gods: Wings of Light deals 1d12 instead of 1d8."
+          text: "Ascendant: Permanent +4 to Severe threshold.\n\nPower of the Gods: Wings of Light deals 1d12 instead of 1d8.",
+          abilities: [
+            {
+              name: "Ascendant",
+              passive: true,
+              statEffects: [{ stat: "severeThreshold", amount: 4 }],
+              summary: "Passive: +4 to Severe damage threshold (permanent)",
+              text: "Permanent +4 to Severe threshold.",
+            },
+            {
+              name: "Power of the Gods",
+              passive: true,
+              summary: "Passive: Wings of Light deals 1d12 instead of 1d8",
+              text: "Wings of Light deals 1d12 instead of 1d8.",
+            },
+          ],
         },
       },
     },
@@ -376,7 +611,6 @@ export const CLASSES = {
         },
         specialization: {
           name: "Enchanted Aid", passive: false,
-          uses: { recharge: "longRest", amount: 1 },
           summary: "Help Ally Spellcast with d8 advantage die · Once per long rest: swap ally's Duality Dice after helping",
           text: "Enchanted Aid: Help Ally Spellcast with d8 advantage die. Once per long rest, swap ally's Duality Dice after helping."
         },
@@ -419,8 +653,22 @@ export const CLASSES = {
         spellcast: null, desc: "Fuel power from enemies' might",
         foundation: {
           name: "Courage / Battle Ritual", passive: false,
-          summary: "Courage: Passive · Fail with Fear → gain a Hope\nBattle Ritual: Once per long rest before great danger · Describe ritual → clear 2 Stress, gain 2 Hope",
-          text: "Courage: Fail with Fear → gain a Hope.\n\nBattle Ritual: Once per long rest before great danger, describe ritual. Clear 2 Stress, gain 2 Hope."
+          text: "Courage: Fail with Fear → gain a Hope.\n\nBattle Ritual: Once per long rest before great danger, describe ritual. Clear 2 Stress, gain 2 Hope.",
+          abilities: [
+            {
+              name: "Courage",
+              passive: true,
+              summary: "Passive: When you fail with Fear → gain a Hope",
+              text: "Fail with Fear → gain a Hope.",
+            },
+            {
+              name: "Battle Ritual",
+              passive: false,
+              uses: { recharge: "longRest", amount: 1 },
+              summary: "Once per long rest · Before great danger · Describe your ritual → clear 2 Stress + gain 2 Hope",
+              text: "Once per long rest before great danger, describe ritual. Clear 2 Stress, gain 2 Hope.",
+            },
+          ],
         },
         specialization: {
           name: "Rise to the Challenge", passive: true,
@@ -429,7 +677,6 @@ export const CLASSES = {
         },
         mastery: {
           name: "Camaraderie", passive: true,
-          uses: { recharge: "session", amount: 1 },
           summary: "Passive: Extra Tag Team Roll per session · Allies only spend 2 Hope to Tag Team with you",
           text: "Camaraderie: Extra Tag Team Roll per session. Allies only spend 2 Hope to Tag Team with you."
         },
@@ -443,7 +690,6 @@ export const CLASSES = {
         },
         specialization: {
           name: "Weapon Specialist", passive: false,
-          uses: { recharge: "longRest", amount: 1 },
           summary: "On success · Spend Hope → add secondary weapon damage die · Once per long rest: reroll 1s on Slayer Dice",
           text: "Weapon Specialist: On success, spend Hope to add secondary weapon damage die. Once per long rest, reroll 1s on Slayer Dice."
         },
@@ -481,19 +727,59 @@ export const CLASSES = {
         spellcast: "Knowledge", desc: "Keen understanding of the world",
         foundation: {
           name: "Prepared / Adept", passive: false,
-          summary: "Prepared: Passive · Take an additional domain card\nAdept: Utilize an Experience by marking Stress instead of Hope · Double the modifier",
-          text: "Prepared: Take an additional domain card.\n\nAdept: Utilize an Experience by marking Stress instead of Hope. Double the modifier."
+          text: "Prepared: Take an additional domain card.\n\nAdept: Utilize an Experience by marking Stress instead of Hope. Double the modifier.",
+          abilities: [
+            {
+              name: "Prepared",
+              passive: true,
+              summary: "Passive: Take an additional domain card",
+              text: "Take an additional domain card.",
+            },
+            {
+              name: "Adept",
+              passive: false,
+              cost: { type: "stress", amount: 1 },
+              summary: "Utilize an Experience · Mark Stress instead of Hope · Double the modifier",
+              text: "Utilize an Experience by marking Stress instead of Hope. Double the modifier.",
+            },
+          ],
         },
         specialization: {
           name: "Accomplished / Perfect Recall", passive: false,
-          uses: { recharge: "rest", amount: 1 },
-          summary: "Accomplished: Passive · Take an additional domain card\nPerfect Recall: Once per rest · Reduce Recall Cost by 1",
-          text: "Accomplished: Take an additional domain card.\n\nPerfect Recall: Once per rest, reduce Recall Cost by 1."
+          text: "Accomplished: Take an additional domain card.\n\nPerfect Recall: Once per rest, reduce Recall Cost by 1.",
+          abilities: [
+            {
+              name: "Accomplished",
+              passive: true,
+              summary: "Passive: Take an additional domain card",
+              text: "Take an additional domain card.",
+            },
+            {
+              name: "Perfect Recall",
+              passive: false,
+              uses: { recharge: "rest", amount: 1 },
+              summary: "Once per rest · Reduce a card's Recall Cost by 1",
+              text: "Once per rest, reduce Recall Cost by 1.",
+            },
+          ],
         },
         mastery: {
           name: "Brilliant / Honed Expertise", passive: false,
-          summary: "Brilliant: Passive · Take an additional domain card\nHoned Expertise: When using an Experience, roll d6 · On 5+ → no Hope cost",
-          text: "Brilliant: Take an additional domain card.\n\nHoned Expertise: When using an Experience, roll d6. On 5+, no Hope cost."
+          text: "Brilliant: Take an additional domain card.\n\nHoned Expertise: When using an Experience, roll d6. On 5+, no Hope cost.",
+          abilities: [
+            {
+              name: "Brilliant",
+              passive: true,
+              summary: "Passive: Take an additional domain card",
+              text: "Take an additional domain card.",
+            },
+            {
+              name: "Honed Expertise",
+              passive: false,
+              summary: "When using an Experience · Roll d6 · On 5+: no Hope cost",
+              text: "When using an Experience, roll d6. On 5+, no Hope cost.",
+            },
+          ],
         },
       },
       "School of War": {
@@ -501,18 +787,59 @@ export const CLASSES = {
         foundation: {
           name: "Battlemage / Face Your Fear", passive: false,
           statEffects: [{ stat: "hp", amount: 1 }],
-          summary: "Battlemage: Passive · +1 HP slot\nFace Your Fear: Succeed with Fear on attack → extra 1d10 magic damage",
-          text: "Battlemage: Gain an additional HP slot.\n\nFace Your Fear: Succeed with Fear on attack → extra 1d10 magic damage."
+          text: "Battlemage: Gain an additional HP slot.\n\nFace Your Fear: Succeed with Fear on attack → extra 1d10 magic damage.",
+          abilities: [
+            {
+              name: "Battlemage",
+              passive: true,
+              statEffects: [{ stat: "hp", amount: 1 }],
+              summary: "Passive: +1 Hit Point slot",
+              text: "Gain an additional HP slot.",
+            },
+            {
+              name: "Face Your Fear",
+              passive: false,
+              summary: "Succeed with Fear on an attack → extra 1d10 magic damage",
+              text: "Succeed with Fear on attack → extra 1d10 magic damage.",
+            },
+          ],
         },
         specialization: {
           name: "Conjure Shield / Fueled by Fear", passive: false,
-          summary: "Conjure Shield: With 2+ Hope · Add Proficiency to Evasion\nFueled by Fear: Face Your Fear → 2d10 instead",
-          text: "Conjure Shield: With 2+ Hope, add Proficiency to Evasion.\n\nFueled by Fear: Face Your Fear → 2d10."
+          text: "Conjure Shield: With 2+ Hope, add Proficiency to Evasion.\n\nFueled by Fear: Face Your Fear → 2d10.",
+          abilities: [
+            {
+              name: "Conjure Shield",
+              passive: false,
+              summary: "While you have 2+ Hope · Add Proficiency to Evasion",
+              text: "With 2+ Hope, add Proficiency to Evasion.",
+            },
+            {
+              name: "Fueled by Fear",
+              passive: true,
+              summary: "Passive: Face Your Fear now deals 2d10 extra instead of 1d10",
+              text: "Face Your Fear → 2d10.",
+            },
+          ],
         },
         mastery: {
           name: "Thrive in Chaos / Have No Fear", passive: false,
-          summary: "Thrive in Chaos: On success · Mark Stress after damage → force target to mark extra HP\nHave No Fear: Face Your Fear → 3d10 instead",
-          text: "Thrive in Chaos: On success, mark Stress after damage to force target to mark extra HP.\n\nHave No Fear: Face Your Fear → 3d10."
+          text: "Thrive in Chaos: On success, mark Stress after damage to force target to mark extra HP.\n\nHave No Fear: Face Your Fear → 3d10.",
+          abilities: [
+            {
+              name: "Thrive in Chaos",
+              passive: false,
+              cost: { type: "stress", amount: 1 },
+              summary: "On successful attack · Mark Stress after damage → force target to mark extra HP",
+              text: "On success, mark Stress after damage to force target to mark extra HP.",
+            },
+            {
+              name: "Have No Fear",
+              passive: true,
+              summary: "Passive: Face Your Fear now deals 3d10 extra instead of 2d10",
+              text: "Face Your Fear → 3d10.",
+            },
+          ],
         },
       },
     },

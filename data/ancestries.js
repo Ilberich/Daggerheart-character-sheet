@@ -50,14 +50,27 @@ export const ANCESTRIES = {
   Faerie: [
     {
       name: "Luckbender", passive: false,
-      uses: { recharge: "session", amount: 1 },
       summary: "Once per session · After any action roll · 3 Hope → reroll Duality Dice",
       text: "Luckbender: Once per session, after you or a willing ally within Close range makes an action roll, spend 3 Hope to reroll the Duality Dice."
     },
     {
       name: "Wings", passive: false,
-      summary: "Passive: You can fly · Reaction: Adversary attacks → mark Stress → +2 Evasion vs that attack",
-      text: "Wings: You can fly. While flying, mark a Stress after an adversary attacks to gain +2 Evasion against that attack."
+      text: "Wings: You can fly. While flying, mark a Stress after an adversary attacks to gain +2 Evasion against that attack.",
+      abilities: [
+        {
+          name: "Wings",
+          passive: true,
+          summary: "Passive: You can fly",
+          text: "You can fly.",
+        },
+        {
+          name: "Aerial Dodge",
+          passive: false,
+          cost: { type: "stress", amount: 1 },
+          summary: "Reaction: While flying · Adversary attacks → mark Stress → +2 Evasion against that attack",
+          text: "While flying, mark a Stress after an adversary attacks to gain +2 Evasion against that attack.",
+        },
+      ],
     },
   ],
   Faun: [
@@ -130,7 +143,6 @@ export const ANCESTRIES = {
     },
     {
       name: "Danger Sense", passive: false,
-      uses: { recharge: "rest", amount: 1 },
       summary: "Once per rest · Mark Stress → force adversary to reroll attack vs you or Very Close ally",
       text: "Danger Sense: Once per rest, mark Stress to force adversary to reroll an attack against you or ally within Very Close."
     },

@@ -80,4 +80,110 @@ export const Midnight = [
     summary: "1 Hope → mark current location · Later before next rest: 1 Hope → teleport back to marked spot · Ends after reappearing",
     text: "Spend a Hope to activate Phantom Retreat where you're currently standing. Spend another Hope at any time before your next rest to disappear from where you are and reappear where you were standing when you activated Phantom Retreat. This spell ends after you reappear."
   },
+  // Level 6
+  {
+    level: 6, name: "Dark Whispers", type: "Spell", recallCost: 0,
+    cost: null,
+    passive: false,
+    text: "You can speak into the mind of any person with whom you've made physical contact. Once you've opened a channel with them, they can speak back into your mind. Additionally, you can mark a Stress to make a Spellcast Roll against them. On a success, you can ask the GM one of the following questions and receive an answer:\n• Where are they?\n• What are they doing?\n• What are they afraid of?\n• What do they cherish most in the world?",
+    abilities: [
+      {
+        name: "Dark Whispers",
+        passive: false,
+        summary: "Passive ability: Telepathic link with any previously touched person · They can speak back",
+        text: "You can speak into the mind of any person with whom you've made physical contact. Once you've opened a channel with them, they can speak back into your mind.",
+      },
+      {
+        name: "Mind Probe",
+        passive: false,
+        cost: { type: "stress", amount: 1 },
+        summary: "Mark Stress · Spellcast Roll vs linked target · On success: ask GM one question — location, actions, fears, or what they cherish",
+        text: "Mark a Stress to make a Spellcast Roll against a linked target. On a success, ask the GM one question:\n• Where are they?\n• What are they doing?\n• What are they afraid of?\n• What do they cherish most in the world?",
+      },
+    ],
+  },
+  {
+    level: 6, name: "Mass Disguise", type: "Spell", recallCost: 0,
+    cost: { type: "stress", amount: 1 },
+    passive: false,
+    summary: "Few minutes of silence · Mark Stress · Change appearance of all willing Close creatures · Advantage on scrutiny rolls · Countdown (8) — when triggered, disguise drops",
+    text: "When you have a few minutes of silence to focus, you can mark a Stress to change the appearance of all willing creatures within Close range. Their new forms must share a general body structure and size, and can be somebody or something you've seen before or entirely fabricated. A disguised creature has advantage on Presence Rolls to avoid scrutiny.\nActivate a Countdown (8). It ticks down as a consequence the GM chooses. When it triggers, the disguise drops."
+  },
+  // Level 7
+  {
+    level: 7, name: "Midnight-Touched", type: "Ability", recallCost: 2,
+    cost: null,
+    passive: true,
+    text: "When 4 or more of the domain cards in your loadout are from the Midnight domain, gain the following benefits:\n• Once per rest, when you have 0 Hope and the GM would gain a Fear, you can gain a Hope instead.\n• When you make a successful attack, you can mark a Stress to add the result of your Fear Die to your damage roll.",
+    abilities: [
+      {
+        name: "Midnight-Touched",
+        passive: true,
+        uses: { recharge: "rest", amount: 1 },
+        summary: "Passive: 4+ Midnight cards · Once per rest: 0 Hope + GM gains Fear → gain Hope instead",
+        text: "When 4 or more of the domain cards in your loadout are from the Midnight domain, once per rest when you have 0 Hope and the GM would gain a Fear, you can gain a Hope instead.",
+      },
+      {
+        name: "Fear Harvest",
+        passive: false,
+        cost: { type: "stress", amount: 1 },
+        summary: "4+ Midnight cards · Successful attack · Mark Stress → add Fear Die result to damage roll",
+        text: "When 4 or more of the domain cards in your loadout are from the Midnight domain and you make a successful attack, you can mark a Stress to add the result of your Fear Die to your damage roll.",
+      },
+    ],
+  },
+  {
+    level: 7, name: "Vanishing Dodge", type: "Spell", recallCost: 1,
+    cost: { type: "hope", amount: 1 },
+    passive: false,
+    summary: "Physical damage attack against you fails · 1 Hope → become Hidden + teleport within Close of attacker · Hidden until next action roll",
+    text: "When an attack made against you that would deal physical damage fails, you can spend a Hope to envelop yourself in shadow, becoming Hidden and teleporting to a point within Close range of the attacker. You remain Hidden until the next time you make an action roll."
+  },
+  // Level 8
+  {
+    level: 8, name: "Shadowhunter", type: "Ability", recallCost: 2,
+    cost: null,
+    passive: true,
+    summary: "Passive: In low light or darkness → +1 Evasion · Attack rolls with advantage",
+    text: "Your prowess is enhanced under the cover of shadow. While you're shrouded in low light or darkness, you gain a +1 bonus to your Evasion and make attack rolls with advantage."
+  },
+  {
+    level: 8, name: "Spellcharge", type: "Spell", recallCost: 1,
+    cost: null,
+    passive: false,
+    summary: "Take magic damage · Place tokens = HP marked (max = Spellcast) · Successful attack · Spend tokens → +d6 per token to damage",
+    text: "When you take magic damage, place tokens equal to the number of Hit Points you marked on this card. You can store a number of tokens equal to your Spellcast trait.\nWhen you make a successful attack against a target, you can spend any number of tokens to add a d6 for each token spent to your damage roll."
+  },
+  // Level 9
+  {
+    level: 9, name: "Night Terror", type: "Spell", recallCost: 2,
+    cost: null,
+    passive: false,
+    uses: { recharge: "longRest", amount: 1 },
+    summary: "Once per long rest · Very Close targets · Reaction Roll (16) · Fail: Horrified + Vulnerable · Steal Fear = Horrified targets · Roll d6 per Fear · Deal total to each Horrified target",
+    text: "Once per long rest, choose any targets within Very Close range to perceive you as a nightmarish horror. The targets must succeed on a Reaction Roll (16) or become temporarily Horrified. While Horrified, they're Vulnerable. Steal a number of Fear from the GM equal to the number of targets that are Horrified (up to the number of Fear in the GM's pool). Roll a number of d6s equal to the number of stolen Fear and deal the total damage to each Horrified target. Discard the stolen Fear."
+  },
+  // Level 10
+  {
+    level: 10, name: "Eclipse", type: "Spell", recallCost: 2,
+    cost: null,
+    passive: false,
+    uses: { recharge: "longRest", amount: 1 },
+    summary: "Spellcast Roll (16) · Once per long rest · Far area plunged into darkness only you + allies see · Attacks vs you/allies: disadvantage · Hope success vs shadow adversary: they mark Stress · Ends on GM Fear spend or Severe damage",
+    text: "Make a Spellcast Roll (16). Once per long rest on a success, plunge the entire area within Far range into complete darkness only you and your allies can see through. Attack rolls have disadvantage when targeting you or an ally within this shadow.\nAdditionally, when you or an ally succeeds with Hope against an adversary within this shadow, the target must mark a Stress.\nThis spell lasts until the GM spends a Fear on their turn to clear this effect or you take Severe damage."
+  },
+  {
+    level: 10, name: "Specter of the Dark", type: "Spell", recallCost: 1,
+    cost: { type: "stress", amount: 1 },
+    passive: false,
+    summary: "Mark Stress → Spectral until next action roll targeting a creature · Immune to physical damage · Float and pass through solid objects · Still visible to others",
+    text: "Mark a Stress to become Spectral until you make an action roll targeting another creature. While Spectral, you're immune to physical damage and can float and pass through solid objects. Other creatures can still see you while you're in this form."
+  },
+  {
+    level: 9, name: "Twilight Toll", type: "Ability", recallCost: 1,
+    cost: null,
+    passive: false,
+    summary: "Choose Far target · Succeed on non-damage rolls vs them: place token · Deal damage: spend tokens → +d12 per token · One target at a time · Clear on new target or rest",
+    text: "Choose a target within Far range. When you succeed on an action roll against them that doesn't result in making a damage roll, place a token on this card. When you deal damage to this target, spend any number of tokens to add a d12 for each token spent to your damage roll. You can only hold Twilight Toll on one creature at a time.\nWhen you choose a new target or take a rest, clear all unspent tokens."
+  },
 ];

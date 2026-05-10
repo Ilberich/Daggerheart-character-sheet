@@ -50,6 +50,7 @@ export const ANCESTRIES = {
   Faerie: [
     {
       name: "Luckbender", passive: false,
+      uses: { recharge: "session", amount: 1 },
       summary: "Once per session · After any action roll · 3 Hope → reroll Duality Dice",
       text: "Luckbender: Once per session, after you or a willing ally within Close range makes an action roll, spend 3 Hope to reroll the Duality Dice."
     },
@@ -143,6 +144,7 @@ export const ANCESTRIES = {
     },
     {
       name: "Danger Sense", passive: false,
+      uses: { recharge: "rest", amount: 1 },
       summary: "Once per rest · Mark Stress → force adversary to reroll attack vs you or Very Close ally",
       text: "Danger Sense: Once per rest, mark Stress to force adversary to reroll an attack against you or ally within Very Close."
     },
@@ -248,6 +250,7 @@ export const COMMUNITIES = {
   },
   Orderborne: {
     name: "Dedicated", passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Record 3 sayings/values · Once per rest · Describe embodying one → roll d20 as Hope Die",
     text: "Dedicated: Record three sayings or values your upbringing instilled in you. Once per rest, when you describe how you're embodying one of these principles through your current action, you can roll a d20 as your Hope Die."
   },
@@ -273,6 +276,7 @@ export const COMMUNITIES = {
   },
   Wanderborne: {
     name: "Nomadic Pack", passive: false,
+    uses: { recharge: "session", amount: 1 },
     summary: "Once per session · Spend Hope → pull a useful mundane item from your pack (work with GM)",
     text: "Nomadic Pack: Once per session, spend Hope to pull a useful mundane item from your pack. Work with GM."
   },
@@ -289,26 +293,31 @@ export const COMMUNITIES = {
   },
   Freeborne: {
     name: "Unbound", passive: false,
+    uses: { recharge: "session", amount: 1 },
     summary: "Once per session · On action roll with Fear → change to roll with Hope instead",
     text: "Unbound: Once per session, when you make an action roll with Fear, you can change it to a roll with Hope instead."
   },
   Frostborne: {
     name: "Hardy", passive: false,
+    uses: { recharge: "rest", amount: 1 },
     summary: "Once per rest · Help an Ally traverse difficult terrain without spending Hope",
     text: "Hardy: Once per rest, you can Help an Ally traverse difficult terrain without spending a Hope."
   },
   Hearthborne: {
     name: "Close-Knit", passive: false,
+    uses: { recharge: "longRest", amount: 1 },
     summary: "Once per long rest · Spend any number of Hope → give same amount to an ally",
     text: "Close-Knit: Once per long rest, you can spend any number of Hope to give an ally the same number of Hope."
   },
   Reborne: {
     name: "Found Family", passive: false,
+    uses: { recharge: "session", amount: 1 },
     summary: "Once per session · 1 Hope → use an ally's community ability · Ally gains Hope · Can permanently swap this card when you find/join your true community",
     text: "Found Family: Once per session, you can spend a Hope to use an ally's community ability. When you do, your ally gains a Hope. At any point, when you've discovered the community you were once a part of, or have joined a new community, you can permanently trade this community card for that one instead."
   },
   Warborne: {
     name: "Brave Face", passive: false,
+    uses: { recharge: "session", amount: 1 },
     summary: "Once per session · Attack would cause you to mark Stress → spend Hope instead",
     text: "Brave Face: Once per session, when an attack would cause you to mark a Stress, you can spend a Hope instead."
   },

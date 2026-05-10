@@ -65,6 +65,7 @@ export const CLASSES = {
         },
         specialization: {
           name: "Eloquent", passive: false,
+          uses: { recharge: "session", amount: 1 },
           summary: "Once per session · Encourage ally → choose: find mundane object, Help without spending Hope, or extra downtime move",
           text: "Eloquent: Once per session, when you encourage an ally, do one of: allow them to find a mundane object/tool, Help an Ally without spending Hope, or give them an additional downtime move during their next rest."
         },
@@ -116,6 +117,7 @@ export const CLASSES = {
         },
         specialization: {
           name: "Elemental Aura", passive: false,
+          uses: { recharge: "rest", amount: 1 },
           summary: "Once per rest while Channeling · Aura within Close:\nFire: HP markers also mark Stress\nEarth: Allies +1 Strength\nWater: On damage, mark Stress → move attacker (Very Close)\nAir: Reduce damage from beyond Melee by 1d8",
           text: "Elemental Aura: Once per rest while Channeling, assume an aura within Close range:\n• Fire: Adversaries who mark HP also mark Stress.\n• Earth: Allies gain +1 Strength.\n• Water: When damaged, mark Stress to move adversary within Very Close.\n• Air: Reduce damage from beyond Melee by 1d8."
         },
@@ -469,6 +471,7 @@ export const CLASSES = {
         },
         specialization: {
           name: "Contacts Everywhere", passive: false,
+          uses: { recharge: "session", amount: 1 },
           summary: "Once per session · Call a contact for: handful of gold/tool/object, +3 to next Hope or Fear Die, or sniper (+2d8 damage)",
           text: "Contacts Everywhere: Once per session, call a contact:\n• 1 handful of gold, a tool, or mundane object.\n• +3 to next Hope or Fear Die.\n• They snipe from shadows, +2d8 damage."
         },

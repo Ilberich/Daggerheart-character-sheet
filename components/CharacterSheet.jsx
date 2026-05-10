@@ -49,7 +49,7 @@ function lookupFeatureRecharge(key) {
   }
 
   // Ancestries
-  for (const feat of (ANCESTRIES[source]?.features || []))
+  for (const feat of (ANCESTRIES[source] || []))
     if (feat.name === name && feat.uses) return feat.uses.recharge;
 
   // Communities

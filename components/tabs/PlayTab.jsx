@@ -31,14 +31,18 @@ const [passivesOpen, setPassivesOpen] = useState(true);
     return n;
   });
   const CooldownBtn = ({ label, used, onToggle, recharge }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: `1px solid ${P.border}`, marginTop: 6 }}>
       <div>
         <div style={{ fontSize: 12, fontWeight: 700, color: used ? P.textMuted : P.text }}>{label}</div>
         {recharge && <div style={{ fontSize: 10, color: P.textMuted }}>{recharge}</div>}
       </div>
-      <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${used ? P.border : P.accent}`, background: used ? P.surface : P.accent + "22", color: used ? P.textMuted : P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-        {used ? "✓ Used" : "Available"}
-      </button>
+      <input
+        type="checkbox"
+        checked={used}
+        onChange={(e) => { e.stopPropagation(); onToggle(); }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ cursor: "pointer", width: 16, height: 16, accentColor: P.accent }}
+      />
     </div>
   );
   return <>
@@ -554,6 +558,14 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                           </div>
                           {/* Summary below, full width */}
                           {summary && <div style={{ fontSize: 11, color: P.textMuted, lineHeight: 1.4, marginTop: 4, paddingLeft: 16 }}>{summary}</div>}
+                          {item.uses && (
+                            <CooldownBtn
+                              label={name}
+                              used={!!c.featureUses?.[item.usesKey]}
+                              onToggle={() => u("featureUses", { ...c.featureUses, [item.usesKey]: !c.featureUses?.[item.usesKey] })}
+                              recharge={item.uses.recharge === "longRest" ? "Long rest" : item.uses.recharge === "rest" ? "Rest" : "Session"}
+                            />
+                          )}
                         </div>
                         {fullText && expanded && (
                           <div style={{ fontSize: 11, color: P.textMuted, lineHeight: 1.65, whiteSpace: "pre-line", padding: "8px 12px", background: P.surface + "88", borderRadius: "0 0 8px 8px", border: `1px solid ${P.border}`, borderTop: "none" }}>
@@ -566,14 +578,6 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                               </div>
                             )}
                           </div>
-                        )}
-                        {item.uses && (
-                          <CooldownBtn
-                            label={name}
-                            used={!!c.featureUses?.[item.usesKey]}
-                            onToggle={() => u("featureUses", { ...c.featureUses, [item.usesKey]: !c.featureUses?.[item.usesKey] })}
-                            recharge={item.uses.recharge === "longRest" ? "Long rest" : item.uses.recharge === "rest" ? "Rest" : "Session"}
-                          />
                         )}
                       </div>
                     );
@@ -599,14 +603,14 @@ const [passivesOpen, setPassivesOpen] = useState(true);
               if (!feat) return;
               const ancSrc = c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry;
               const feats = feat.abilities?.length ? feat.abilities.filter(a => a.passive !== false) : (feat.passive !== false ? [feat] : []);
-              feats.forEach(f => { passives.push({ source: ancSrc, name: f.name, desc: f.text }); });
+              feats.forEach(f => { passives.push({ source: ancSrc, name: f.name, desc: f.text, uses: f.uses || null, usesKey: `${ancSrc}::${f.name}` }); });
             });
 
             // Community feature where passive: true
             if (c.community && COMMUNITIES[c.community]) {
               const ct = COMMUNITIES[c.community];
               const feats = ct.abilities?.length ? ct.abilities.filter(a => a.passive !== false) : (ct.passive !== false ? [ct] : []);
-              feats.forEach(f => { passives.push({ source: c.community, name: f.name, desc: f.text }); });
+              feats.forEach(f => { passives.push({ source: c.community, name: f.name, desc: f.text, uses: f.uses || null, usesKey: `${c.community}::${f.name}` }); });
             }
 
             // Subclass features where passive: true and tier unlocked
@@ -619,7 +623,7 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                 if (!obj || subclassLevel < minSubLv) return;
                 const src = `${c.subclass} · ${tier}`;
                 const feats = obj.abilities?.length ? obj.abilities.filter(a => a.passive !== false) : (obj.passive !== false ? [obj] : []);
-                feats.forEach(f => { passives.push({ source: src, name: f.name || tier, desc: f.text || "" }); });
+                feats.forEach(f => { passives.push({ source: src, name: f.name || tier, desc: f.text || "", uses: f.uses || null, usesKey: `${c.className}::${f.name || tier}` }); });
               });
             }
 
@@ -627,7 +631,7 @@ const [passivesOpen, setPassivesOpen] = useState(true);
             if (cls) {
               cls.classFeatures.forEach(feat => {
                 const feats = feat.abilities?.length ? feat.abilities.filter(a => a.passive !== false) : (feat.passive !== false ? [feat] : []);
-                feats.forEach(f => { passives.push({ source: c.className, name: f.name, desc: f.text }); });
+                feats.forEach(f => { passives.push({ source: c.className, name: f.name, desc: f.text, uses: f.uses || null, usesKey: `${c.className}::${f.name}` }); });
               });
             }
 
@@ -637,7 +641,7 @@ const [passivesOpen, setPassivesOpen] = useState(true);
               const card = (DOMAIN_CARDS[domain] || []).find(cd => cd.name === cardName);
               if (!card) return;
               const feats = card.abilities?.length ? card.abilities.filter(a => a.passive !== false) : (card.passive !== false ? [card] : []);
-              feats.forEach(f => { passives.push({ source: domain, name: f.name, desc: f.text }); });
+              feats.forEach(f => { passives.push({ source: domain, name: f.name, desc: f.text, uses: f.uses || null, usesKey: `${domain}::${f.name}` }); });
             });
 
             if (passives.length === 0) return null;
@@ -651,6 +655,14 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                       <span style={{ fontSize: 9, fontWeight: 600, color: P.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: 8, flexShrink: 0 }}>{p.source}</span>
                     </div>
                     <div style={{ fontSize: 11, color: P.textMuted, lineHeight: 1.55, whiteSpace: "pre-line" }}>{p.desc}</div>
+                    {p.uses && (
+                      <CooldownBtn
+                        label={p.name}
+                        used={!!c.featureUses?.[p.usesKey]}
+                        onToggle={() => u("featureUses", { ...c.featureUses, [p.usesKey]: !c.featureUses?.[p.usesKey] })}
+                        recharge={p.uses.recharge === "longRest" ? "Long rest" : p.uses.recharge === "rest" ? "Rest" : "Session"}
+                      />
+                    )}
                   </div>
                 ))}
               </Card>

@@ -113,7 +113,7 @@ export const ANCESTRIES = {
   Galapa: [
     {
       name: "Shell", passive: true,
-      statEffects: [{ stat: "thresholds", amount: "proficiency" }],
+      statEffects: [{ stat: "thresholds", amount: { of: "proficiency" } }],
       summary: "Passive: +Proficiency to all damage thresholds",
       text: "Shell: Gain a bonus to damage thresholds equal to your Proficiency."
     },

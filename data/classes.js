@@ -96,6 +96,7 @@ export const CLASSES = {
     classFeatures: [
       {
         name: "Rally", passive: false,
+        uses: { recharge: "session", amount: 1 },
         summary: "Once per session · Give self + each ally a Rally Die (d6, d8 at level 5) · Spend to add to any roll or clear Stress equal to result · Unspent clear at session end",
         text: "Rally: Once per session, describe how you rally the party and give yourself and each of your allies a Rally Die. At level 1, your Rally Die is a d6. A PC can spend their Rally Die to roll it, adding the result to their action roll, reaction roll, damage roll, or to clear a number of Stress equal to the result. At the end of each session, clear all unspent Rally Dice.\n\nAt level 5, your Rally Die increases to a d8."
       },
@@ -305,6 +306,7 @@ export const CLASSES = {
     classFeatures: [
       {
         name: "Unstoppable", passive: false,
+        uses: { recharge: "longRest", amount: 1 },
         summary: "Once per long rest · Unstoppable Die d4 (d6 at level 5) · After each HP dealt: increase die value · While active: −1 physical damage threshold, +die value to damage, immune to Restrained/Vulnerable · Ends when die maxes or scene ends",
         text: "Unstoppable: Once per long rest, you can become Unstoppable. You gain an Unstoppable Die. At level 1, your Unstoppable Die is a d4. Place it on this sheet in the space provided, starting with the 1 value facing up. After you make a damage roll that deals 1 or more Hit Points to a target, increase the Unstoppable Die value by one. When the die's value would exceed its maximum value or when the scene ends, remove the die and drop out of Unstoppable. At level 5, your Unstoppable Die increases to a d6.\n\nWhile Unstoppable, you gain the following benefits:\n• You reduce the severity of physical damage by one threshold (Severe to Major, Major to Minor, Minor to None).\n• You add the current value of the Unstoppable Die to your damage roll.\n• You can't be Restrained or Vulnerable."
       },
@@ -598,6 +600,7 @@ export const CLASSES = {
         },
         mastery: {
           name: "Transcendence", passive: false,
+          uses: { recharge: "longRest", amount: 1 },
           summary: "Once per long rest · Become your element · Choose two until next rest: +4 Severe threshold, +1 character trait, +1 Proficiency, or +2 Evasion",
           text: "Transcendence: Once per long rest, become your element. Choose two until next rest:\n• +4 Severe threshold\n• +1 character trait\n• +1 Proficiency\n• +2 Evasion"
         },
@@ -639,6 +642,7 @@ export const CLASSES = {
       },
       {
         name: "Channel Raw Power", passive: false,
+        uses: { recharge: "longRest", amount: 1 },
         summary: "Once per long rest · Vault a domain card from loadout · Choose: gain Hope = card level, OR bonus to magic damage roll = 2× card level",
         text: "Channel Raw Power: Once per long rest, you can place a domain card from your loadout into your vault and choose to either:\n• Gain Hope equal to the level of the card.\n• Enhance a spell that deals damage, gaining a bonus to your damage roll equal to twice the level of the card."
       },

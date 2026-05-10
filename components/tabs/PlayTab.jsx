@@ -15,6 +15,7 @@ export function PlayTab({
   canAfford, spendCost, costDisplay, parseCost,
   allExps, editExp, setEditExp,
   setRestModal, setRestChoices,
+  onNewSession,
   sub, subclassLevel, cls,
 }) {
   const [combatOpen,   setCombatOpen]   = useState(true);
@@ -29,6 +30,17 @@ const [passivesOpen, setPassivesOpen] = useState(true);
     n.has(key) ? n.delete(key) : n.add(key);
     return n;
   });
+  const CooldownBtn = ({ label, used, onToggle, recharge }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: used ? P.textMuted : P.text }}>{label}</div>
+        {recharge && <div style={{ fontSize: 10, color: P.textMuted }}>{recharge}</div>}
+      </div>
+      <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${used ? P.border : P.accent}`, background: used ? P.surface : P.accent + "22", color: used ? P.textMuted : P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+        {used ? "✓ Used" : "Available"}
+      </button>
+    </div>
+  );
   return <>
           {/* __ Combat Stats collapsible __ */}
           <div>
@@ -76,8 +88,12 @@ const [passivesOpen, setPassivesOpen] = useState(true);
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
               <Lbl style={{ marginBottom: 0 }}>Hit Points ({c.hp.filter(Boolean).length} / {maxHp})</Lbl>
-              <button onClick={() => { setRestModal("choose"); setRestChoices([]); }}
-                style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.hope, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.3 }}>⛺ Rest</button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={onNewSession}
+                  style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.3 }}>✦ Session</button>
+                <button onClick={() => { setRestModal("choose"); setRestChoices([]); }}
+                  style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.hope, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, letterSpacing: 0.3 }}>⛺ Rest</button>
+              </div>
             </div>
             <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>{c.hp.slice(0, maxHp).map((f, i) => <Pip key={i} filled={f} color={P.fear} onClick={() => tog("hp", i)} size={26} />)}</div>
           </Card>
@@ -104,17 +120,6 @@ const [passivesOpen, setPassivesOpen] = useState(true);
           {/* ── CLASS RESOURCES ─────────────────────────────── */}
           {c.className && c.subclass && (() => {
             // Reusable helpers
-            const CooldownBtn = ({ label, used, onToggle, recharge }) => (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: used ? P.textMuted : P.text }}>{label}</div>
-                  {recharge && <div style={{ fontSize: 10, color: P.textMuted }}>{recharge}</div>}
-                </div>
-                <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${used ? P.border : P.accent}`, background: used ? P.surface : P.accent + "22", color: used ? P.textMuted : P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  {used ? "✓ Used" : "Available"}
-                </button>
-              </div>
-            );
             const ActiveToggle = ({ label, active, onToggle, activeColor }) => {
               const col = activeColor || P.accent;
               return (
@@ -142,36 +147,12 @@ const [passivesOpen, setPassivesOpen] = useState(true);
 
             const resources = [];
 
-            // ── BARD ──────────────────────────────────────────
-            if (c.className === "Bard") {
-              resources.push(
-                <CooldownBtn key="rally" label="Rally" used={c.rallyUsed || false} onToggle={() => u("rallyUsed", !(c.rallyUsed || false))} recharge="Once per session — give party Rally Dice" />
-              );
-              if (c.subclass === "Troubadour") {
-                resources.push(
-                  <CooldownBtn key="song1" label="Relaxing Song" used={c.troubadourSong1Used || false} onToggle={() => u("troubadourSong1Used", !(c.troubadourSong1Used || false))} recharge="Long rest" />,
-                  <CooldownBtn key="song2" label="Epic Song" used={c.troubadourSong2Used || false} onToggle={() => u("troubadourSong2Used", !(c.troubadourSong2Used || false))} recharge="Long rest" />,
-                  <CooldownBtn key="song3" label="Heartbreaking Song" used={c.troubadourSong3Used || false} onToggle={() => u("troubadourSong3Used", !(c.troubadourSong3Used || false))} recharge="Long rest" />
-                );
-              }
-              if (c.subclass === "Wordsmith") {
-                resources.push(
-                  <CooldownBtn key="speech" label="Rousing Speech" used={c.wordsmithSpeechUsed || false} onToggle={() => u("wordsmithSpeechUsed", !(c.wordsmithSpeechUsed || false))} recharge="Long rest" />
-                );
-              }
-            }
-
-            // ── DRUID ─────────────────────────────────────────
+// ── DRUID ─────────────────────────────────────────
             if (c.className === "Druid") {
               resources.push(
                 <ActiveToggle key="beastform" label="Beastform" active={c.beastformActive || false} onToggle={() => u("beastformActive", !(c.beastformActive || false))} activeColor="#22c55e" />
               );
-              if (c.subclass === "Warden of Renewal") {
-                resources.push(
-                  <CooldownBtn key="clarity" label="Clarity of Nature" used={c.druidClarityUsed || false} onToggle={() => u("druidClarityUsed", !(c.druidClarityUsed || false))} recharge="Long rest" />,
-                  <CooldownBtn key="wardens" label="Warden's Protection" used={c.druidWardensProtectionUsed || false} onToggle={() => u("druidWardensProtectionUsed", !(c.druidWardensProtectionUsed || false))} recharge="Long rest" />
-                );
-              }
+
             }
 
             // ── GUARDIAN ──────────────────────────────────────
@@ -185,10 +166,10 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                       <div style={{ fontSize: 12, fontWeight: 700, color: (c.unstoppableActive || false) ? P.fear : P.text }}>Unstoppable {(c.unstoppableActive || false) ? `(d${dieMax}, value: ${dieVal})` : ""}</div>
                       <div style={{ fontSize: 10, color: P.textMuted }}>Once per long rest</div>
                     </div>
-                    {!(c.unstoppableUsed || false) && !(c.unstoppableActive || false) && (
-                      <button onClick={() => { u("unstoppableActive", true); u("unstoppableDieValue", 1); u("unstoppableUsed", true); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${P.fear}`, background: P.fear + "22", color: P.fear, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Activate</button>
+                    {!c.featureUses?.["Guardian::Unstoppable"] && !(c.unstoppableActive || false) && (
+                      <button onClick={() => { u("unstoppableActive", true); u("unstoppableDieValue", 1); u("featureUses", { ...c.featureUses, "Guardian::Unstoppable": true }); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${P.fear}`, background: P.fear + "22", color: P.fear, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Activate</button>
                     )}
-                    {(c.unstoppableUsed || false) && !(c.unstoppableActive || false) && (
+                    {!!c.featureUses?.["Guardian::Unstoppable"] && !(c.unstoppableActive || false) && (
                       <span style={{ fontSize: 11, color: P.textMuted, fontWeight: 700 }}>✓ Used</span>
                     )}
                     {(c.unstoppableActive || false) && (
@@ -258,14 +239,6 @@ const [passivesOpen, setPassivesOpen] = useState(true);
 
             // ── SORCERER ──────────────────────────────────────
             if (c.className === "Sorcerer") {
-              resources.push(
-                <CooldownBtn key="channel" label="Channel Raw Power" used={c.channelRawPowerUsed || false} onToggle={() => u("channelRawPowerUsed", !(c.channelRawPowerUsed || false))} recharge="Long rest" />
-              );
-              if (c.subclass === "Elemental Origin") {
-                resources.push(
-                  <CooldownBtn key="transcend" label="Transcendence" used={c.transcendenceUsed || false} onToggle={() => u("transcendenceUsed", !(c.transcendenceUsed || false))} recharge="Long rest" />
-                );
-              }
               if (c.subclass === "Primal Origin") {
                 resources.push(
                   <ActiveToggle key="charge" label="Arcane Charge" active={c.arcaneChargeActive || false} onToggle={() => u("arcaneChargeActive", !(c.arcaneChargeActive || false))} />
@@ -275,11 +248,6 @@ const [passivesOpen, setPassivesOpen] = useState(true);
 
             // ── WARRIOR ───────────────────────────────────────
             if (c.className === "Warrior") {
-              if (c.subclass === "Call of the Brave") {
-                resources.push(
-                  <CooldownBtn key="ritual" label="Battle Ritual" used={c.battleRitualUsed || false} onToggle={() => u("battleRitualUsed", !(c.battleRitualUsed || false))} recharge="Long rest" />
-                );
-              }
               if (c.subclass === "Call of the Slayer") {
                 const dice = c.slayerDice || [];
                 resources.push(
@@ -398,6 +366,8 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                     costColor: cd.color,
                     optionalCost: f.optionalCost || null,
                     clickCost: f.cost,
+                    uses: f.uses || null,
+                    usesKey: `${domain}::${f.name}`,
                   });
                 });
               });
@@ -423,6 +393,8 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                       costColor: cd.color,
                       optionalCost: null,
                       clickCost: cost,
+                      uses: f.uses || null,
+                      usesKey: `${c.className}::${f.name}`,
                     });
                   });
                 } else {
@@ -439,6 +411,8 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                     costColor: P.hope,
                     optionalCost: null,
                     clickCost: hfCost,
+                    uses: hf.uses || null,
+                    usesKey: `${c.className}::${hf.name}`,
                   });
                 }
               }
@@ -462,6 +436,8 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                       costColor: cost?.type === "hope" ? P.hope : P.stress,
                       optionalCost: null,
                       clickCost: cost,
+                      uses: f.uses || null,
+                      usesKey: `${c.className}::${f.name}`,
                     });
                   });
                 });
@@ -492,6 +468,8 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                       costColor: cost?.type === "hope" ? P.hope : P.stress,
                       optionalCost: null,
                       clickCost: cost,
+                      uses: f.uses || null,
+                      usesKey: `${c.className}::${f.name}`,
                     });
                   });
                 });
@@ -517,6 +495,8 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                     costColor: cost?.type === "hope" ? P.hope : P.stress,
                     optionalCost: null,
                     clickCost: cost,
+                    uses: f.uses || null,
+                    usesKey: `${ancSrc}::${f.name}`,
                   });
                 });
               });
@@ -540,6 +520,8 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                     costColor: cost?.type === "hope" ? P.hope : P.stress,
                     optionalCost: null,
                     clickCost: cost,
+                    uses: f.uses || null,
+                    usesKey: `${c.community}::${f.name}`,
                   });
                 });
               }
@@ -609,6 +591,14 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                               </div>
                             )}
                           </div>
+                        )}
+                        {item.uses && (
+                          <CooldownBtn
+                            label={name}
+                            used={!!c.featureUses?.[item.usesKey]}
+                            onToggle={() => u("featureUses", { ...c.featureUses, [item.usesKey]: !c.featureUses?.[item.usesKey] })}
+                            recharge={item.uses.recharge === "longRest" ? "Long rest" : item.uses.recharge === "rest" ? "Rest" : "Session"}
+                          />
                         )}
                       </div>
                     );

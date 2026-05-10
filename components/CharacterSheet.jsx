@@ -15,6 +15,54 @@ import { PlayTab } from './tabs/PlayTab.jsx';
 import { CharacterTab } from './tabs/CharacterTab.jsx';
 import { RulesNotesTab } from './tabs/RulesNotesTab.jsx';
 
+
+function lookupFeatureRecharge(key) {
+  const sep = key.indexOf('::');
+  if (sep === -1) return null;
+  const source = key.slice(0, sep);
+  const name = key.slice(sep + 2);
+
+  // Domain cards
+  for (const card of (DOMAIN_CARDS[source] || [])) {
+    if (card.name === name && card.uses) return card.uses.recharge;
+    for (const ab of (card.abilities || []))
+      if (ab.name === name && ab.uses) return ab.uses.recharge;
+  }
+
+  // Classes (class features + all subclass tiers)
+  if (CLASSES[source]) {
+    const cls = CLASSES[source];
+    for (const feat of (cls.classFeatures || [])) {
+      if (feat.name === name && feat.uses) return feat.uses.recharge;
+      for (const ab of (feat.abilities || []))
+        if (ab.name === name && ab.uses) return ab.uses.recharge;
+    }
+    for (const sub of Object.values(cls.subclasses || {})) {
+      for (const tier of ["foundation", "specialization", "mastery"]) {
+        const obj = sub[tier];
+        if (!obj) continue;
+        if (obj.name === name && obj.uses) return obj.uses.recharge;
+        for (const ab of (obj.abilities || []))
+          if (ab.name === name && ab.uses) return ab.uses.recharge;
+      }
+    }
+  }
+
+  // Ancestries
+  for (const feat of (ANCESTRIES[source]?.features || []))
+    if (feat.name === name && feat.uses) return feat.uses.recharge;
+
+  // Communities
+  const comm = COMMUNITIES[source];
+  if (comm) {
+    if (comm.name === name && comm.uses) return comm.uses.recharge;
+    for (const ab of (comm.abilities || []))
+      if (ab.name === name && ab.uses) return ab.uses.recharge;
+  }
+
+  return null;
+}
+
 function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [tab, setTab] = useState("Play");
   const [rulesSearch, setRulesSearch] = useState("");
@@ -41,6 +89,14 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [levelUpOpen, setLevelUpOpen] = useState(false);
   const u = useCallback((k, v) => setC(p => ({ ...p, [k]: v })), [setC]);
   const tog = useCallback((k, i) => setC(p => { const a = [...p[k]]; a[i] = !a[i]; return { ...p, [k]: a }; }), [setC]);
+  const handleNewSession = useCallback(() => {
+    setC(prev => {
+      const fu = { ...(prev.featureUses || {}) };
+      for (const key of Object.keys(fu))
+        if (fu[key] && lookupFeatureRecharge(key) === "session") delete fu[key];
+      return { ...prev, featureUses: fu };
+    });
+  }, []);
   const toggleRestChoice = useCallback((id) => {
     setRestChoices(prev => {
       const idx = prev.indexOf(id);
@@ -628,18 +684,20 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             next.arcaneChargeActive = false;
             next.patronsMantleActive = false;
             next.cloaked = false;
-            // On long rest: cooldowns and once-per-long-rest resources
+            // On any rest: clear rest-recharge feature uses
+            {
+              const fu = { ...(next.featureUses || {}) };
+              for (const key of Object.keys(fu))
+                if (fu[key] && lookupFeatureRecharge(key) === "rest") delete fu[key];
+              next.featureUses = fu;
+            }
+            // On long rest: clear longRest-recharge feature uses + other resources
             if (isLong) {
-              next.troubadourSong1Used = false; next.troubadourSong2Used = false; next.troubadourSong3Used = false;
-              next.wordsmithSpeechUsed = false;
-              next.druidClarityUsed = false; next.druidWardensProtectionUsed = false;
-              next.unstoppableUsed = false;
-              next.channelRawPowerUsed = false; next.transcendenceUsed = false;
-              next.battleRitualUsed = false;
-              next.communeUsed = false;
+              const fu = { ...next.featureUses };
+              for (const key of Object.keys(fu))
+                if (fu[key] && lookupFeatureRecharge(key) === "longRest") delete fu[key];
+              next.featureUses = fu;
               next.talismanExists = false;
-              next.trueStrikeUsed = false;
-              next.limitBreakerUsed = false; next.eyeForAnEyeUsed = false;
               next.poisonTokens = 0;
               next.slayerDice = [];
               next.prayerDice = [];
@@ -909,6 +967,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             canAfford={canAfford} spendCost={spendCost} costDisplay={costDisplay} parseCost={parseCost}
             allExps={allExps} editExp={editExp} setEditExp={setEditExp}
             setRestModal={setRestModal} setRestChoices={setRestChoices}
+            onNewSession={handleNewSession}
             sub={sub} subclassLevel={subclassLevel} cls={cls}
           />
         )}

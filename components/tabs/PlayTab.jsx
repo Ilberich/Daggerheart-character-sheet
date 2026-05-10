@@ -380,22 +380,25 @@ const [passivesOpen, setPassivesOpen] = useState(true);
               c.selectedCards.forEach(key => {
                 const [domain, cardName] = key.split("::");
                 const card = (DOMAIN_CARDS[domain] || []).find(cd => cd.name === cardName);
-                if (!card || card.passive !== false) return;
+                if (!card) return;
                 const domColor = DOMAIN_COLORS[domain] || P.accent;
-                const cd = costDisplay(card);
-                qaItems.push({
-                  key: `dc-${key}`,
-                  icon: <span style={{ width:8, height:8, borderRadius:"50%", background:domColor, flexShrink:0, display:"inline-block" }} />,
-                  name: card.name,
-                  nameColor: domColor,
-                  source: domain,
-                  summary: card.summary,
-                  fullText: card.text,
-                  cost: card.cost,
-                  costText: card.cost ? cd.text : null,
-                  costColor: cd.color,
-                  optionalCost: card.optionalCost || null,
-                  clickCost: card.cost,
+                const feats = card.abilities?.length ? card.abilities.filter(a => a.passive === false) : (card.passive === false ? [card] : []);
+                feats.forEach(f => {
+                  const cd = costDisplay(f);
+                  qaItems.push({
+                    key: `dc-${key}-${f.name}`,
+                    icon: <span style={{ width:8, height:8, borderRadius:"50%", background:domColor, flexShrink:0, display:"inline-block" }} />,
+                    name: f.name,
+                    nameColor: domColor,
+                    source: domain,
+                    summary: f.summary,
+                    fullText: f.text,
+                    cost: f.cost,
+                    costText: f.cost ? cd.text : null,
+                    costColor: cd.color,
+                    optionalCost: f.optionalCost || null,
+                    clickCost: f.cost,
+                  });
                 });
               });
 
@@ -403,39 +406,63 @@ const [passivesOpen, setPassivesOpen] = useState(true);
               if (cls && cls.hopeFeature) {
                 const hf = cls.hopeFeature;
                 const hfCost = { type: "hope", amount: 3 };
-                qaItems.push({
-                  key: `hf-${hf.name}`,
-                  icon: <span style={{ color: P.hope, flexShrink:0 }}>✦</span>,
-                  name: hf.name,
-                  nameColor: P.hope,
-                  source: c.className,
-                  summary: hf.summary,
-                  fullText: hf.text,
-                  cost: hfCost,
-                  costText: "3 ✦Hope",
-                  costColor: P.hope,
-                  optionalCost: null,
-                  clickCost: hfCost,
-                });
+                if (hf.abilities?.length) {
+                  hf.abilities.filter(a => a.passive === false).forEach(f => {
+                    const cost = f.cost;
+                    const cd = costDisplay(f);
+                    qaItems.push({
+                      key: `hf-${f.name}`,
+                      icon: <span style={{ color: P.hope, flexShrink:0 }}>✦</span>,
+                      name: f.name,
+                      nameColor: P.hope,
+                      source: c.className,
+                      summary: f.summary,
+                      fullText: f.text,
+                      cost,
+                      costText: cost ? cd.text : null,
+                      costColor: cd.color,
+                      optionalCost: null,
+                      clickCost: cost,
+                    });
+                  });
+                } else {
+                  qaItems.push({
+                    key: `hf-${hf.name}`,
+                    icon: <span style={{ color: P.hope, flexShrink:0 }}>✦</span>,
+                    name: hf.name,
+                    nameColor: P.hope,
+                    source: c.className,
+                    summary: hf.summary,
+                    fullText: hf.text,
+                    cost: hfCost,
+                    costText: "3 ✦Hope",
+                    costColor: P.hope,
+                    optionalCost: null,
+                    clickCost: hfCost,
+                  });
+                }
               }
 
               // 4. Class features where passive: false
               if (cls) {
-                cls.classFeatures.filter(f => f.passive === false).forEach(feat => {
-                  const cost = parseCost(feat.text);
-                  qaItems.push({
-                    key: `cf-${feat.name}`,
-                    icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
-                    name: feat.name,
-                    nameColor: P.text,
-                    source: c.className,
-                    summary: feat.summary,
-                    fullText: feat.text,
-                    cost,
-                    costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
-                    costColor: cost?.type === "hope" ? P.hope : P.stress,
-                    optionalCost: null,
-                    clickCost: cost,
+                cls.classFeatures.forEach(feat => {
+                  const feats = feat.abilities?.length ? feat.abilities.filter(a => a.passive === false) : (feat.passive === false ? [feat] : []);
+                  feats.forEach(f => {
+                    const cost = parseCost(f.text);
+                    qaItems.push({
+                      key: `cf-${f.name}`,
+                      icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
+                      name: f.name,
+                      nameColor: P.text,
+                      source: c.className,
+                      summary: f.summary,
+                      fullText: f.text,
+                      cost,
+                      costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
+                      costColor: cost?.type === "hope" ? P.hope : P.stress,
+                      optionalCost: null,
+                      clickCost: cost,
+                    });
                   });
                 });
               }
@@ -447,65 +474,74 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                   { obj: sub.specialization, minSubLv: 2, tier: "Specialization" },
                   { obj: sub.mastery,        minSubLv: 3, tier: "Mastery" },
                 ].forEach(({ obj, minSubLv, tier }) => {
-                  if (!obj || subclassLevel < minSubLv || obj.passive !== false) return;
-                  const cost = parseCost(obj.text);
-                  qaItems.push({
-                    key: `sf-${tier}-${obj.name}`,
-                    icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
-                    name: obj.name || tier,
-                    nameColor: P.text,
-                    source: `${c.subclass} · ${tier}`,
-                    summary: obj.summary,
-                    fullText: obj.text,
-                    cost,
-                    costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
-                    costColor: cost?.type === "hope" ? P.hope : P.stress,
-                    optionalCost: null,
-                    clickCost: cost,
+                  if (!obj || subclassLevel < minSubLv) return;
+                  const src = `${c.subclass} · ${tier}`;
+                  const feats = obj.abilities?.length ? obj.abilities.filter(a => a.passive === false) : (obj.passive === false ? [obj] : []);
+                  feats.forEach(f => {
+                    const cost = parseCost(f.text);
+                    qaItems.push({
+                      key: `sf-${tier}-${f.name}`,
+                      icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
+                      name: f.name,
+                      nameColor: P.text,
+                      source: src,
+                      summary: f.summary,
+                      fullText: f.text,
+                      cost,
+                      costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
+                      costColor: cost?.type === "hope" ? P.hope : P.stress,
+                      optionalCost: null,
+                      clickCost: cost,
+                    });
                   });
                 });
               }
 
               // 6. Ancestry features where passive: false
               getActiveAncestryFeatures(c).forEach(feat => {
-                if (!feat || feat.passive !== false) return;
-                const cost = parseCost(feat.text);
-                qaItems.push({
-                  key: `af-${feat.name}`,
-                  icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
-                  name: feat.name,
-                  nameColor: P.text,
-                  source: c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry,
-                  summary: feat.summary,
-                  fullText: feat.text,
-                  cost,
-                  costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
-                  costColor: cost?.type === "hope" ? P.hope : P.stress,
-                  optionalCost: null,
-                  clickCost: cost,
-                });
-              });
-
-              // 7. Community ability where passive: false
-              if (c.community && COMMUNITIES[c.community]) {
-                const commObj = COMMUNITIES[c.community];
-                if (commObj.passive === false) {
-                  const cost = parseCost(commObj.text);
+                if (!feat) return;
+                const ancSrc = c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry;
+                const feats = feat.abilities?.length ? feat.abilities.filter(a => a.passive === false) : (feat.passive === false ? [feat] : []);
+                feats.forEach(f => {
+                  const cost = parseCost(f.text);
                   qaItems.push({
-                    key: `ca-${commObj.name}`,
+                    key: `af-${f.name}`,
                     icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
-                    name: commObj.name,
-                    nameColor: P.accent,
-                    source: c.community,
-                    summary: commObj.summary,
-                    fullText: commObj.text,
+                    name: f.name,
+                    nameColor: P.text,
+                    source: ancSrc,
+                    summary: f.summary,
+                    fullText: f.text,
                     cost,
                     costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
                     costColor: cost?.type === "hope" ? P.hope : P.stress,
                     optionalCost: null,
                     clickCost: cost,
                   });
-                }
+                });
+              });
+
+              // 7. Community ability where passive: false
+              if (c.community && COMMUNITIES[c.community]) {
+                const commObj = COMMUNITIES[c.community];
+                const feats = commObj.abilities?.length ? commObj.abilities.filter(a => a.passive === false) : (commObj.passive === false ? [commObj] : []);
+                feats.forEach(f => {
+                  const cost = parseCost(f.text);
+                  qaItems.push({
+                    key: `ca-${f.name}`,
+                    icon: <span style={{ color: P.accent, flexShrink:0 }}>✦</span>,
+                    name: f.name,
+                    nameColor: P.accent,
+                    source: c.community,
+                    summary: f.summary,
+                    fullText: f.text,
+                    cost,
+                    costText: cost ? (cost.type === "hope" ? `${cost.amount} ✦Hope` : `${cost.amount} Stress`) : null,
+                    costColor: cost?.type === "hope" ? P.hope : P.stress,
+                    optionalCost: null,
+                    clickCost: cost,
+                  });
+                });
               }
 
               return (
@@ -595,16 +631,17 @@ const [passivesOpen, setPassivesOpen] = useState(true);
 
             // Ancestry features where passive: true
             getActiveAncestryFeatures(c).forEach(feat => {
-              if (!feat || feat.passive === false) return;
-              passives.push({ source: c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry, name: feat.name, desc: feat.text });
+              if (!feat) return;
+              const ancSrc = c.isMixedAncestry ? (c.mixedAncestryLabel || "Ancestry") : c.ancestry;
+              const feats = feat.abilities?.length ? feat.abilities.filter(a => a.passive !== false) : (feat.passive !== false ? [feat] : []);
+              feats.forEach(f => { passives.push({ source: ancSrc, name: f.name, desc: f.text }); });
             });
 
             // Community feature where passive: true
             if (c.community && COMMUNITIES[c.community]) {
               const ct = COMMUNITIES[c.community];
-              if (ct.passive !== false) {
-                passives.push({ source: c.community, name: ct.name, desc: ct.text });
-              }
+              const feats = ct.abilities?.length ? ct.abilities.filter(a => a.passive !== false) : (ct.passive !== false ? [ct] : []);
+              feats.forEach(f => { passives.push({ source: c.community, name: f.name, desc: f.text }); });
             }
 
             // Subclass features where passive: true and tier unlocked
@@ -614,19 +651,18 @@ const [passivesOpen, setPassivesOpen] = useState(true);
                 { obj: sub.specialization, minSubLv: 2, tier: "Specialization" },
                 { obj: sub.mastery,        minSubLv: 3, tier: "Mastery" },
               ].forEach(({ obj, minSubLv, tier }) => {
-                if (!obj || subclassLevel < minSubLv || obj.passive === false) return;
-                passives.push({
-                  source: `${c.subclass} · ${tier}`,
-                  name: obj.name || tier,
-                  desc: obj.text || ""
-                });
+                if (!obj || subclassLevel < minSubLv) return;
+                const src = `${c.subclass} · ${tier}`;
+                const feats = obj.abilities?.length ? obj.abilities.filter(a => a.passive !== false) : (obj.passive !== false ? [obj] : []);
+                feats.forEach(f => { passives.push({ source: src, name: f.name || tier, desc: f.text || "" }); });
               });
             }
 
             // Class features where passive: true
             if (cls) {
-              cls.classFeatures.filter(f => f.passive !== false).forEach(feat => {
-                passives.push({ source: c.className, name: feat.name, desc: feat.text });
+              cls.classFeatures.forEach(feat => {
+                const feats = feat.abilities?.length ? feat.abilities.filter(a => a.passive !== false) : (feat.passive !== false ? [feat] : []);
+                feats.forEach(f => { passives.push({ source: c.className, name: f.name, desc: f.text }); });
               });
             }
 
@@ -634,8 +670,9 @@ const [passivesOpen, setPassivesOpen] = useState(true);
             c.selectedCards.forEach(key => {
               const [domain, cardName] = key.split("::");
               const card = (DOMAIN_CARDS[domain] || []).find(cd => cd.name === cardName);
-              if (!card || card.passive === false) return;
-              passives.push({ source: domain, name: card.name, desc: card.text });
+              if (!card) return;
+              const feats = card.abilities?.length ? card.abilities.filter(a => a.passive !== false) : (card.passive !== false ? [card] : []);
+              feats.forEach(f => { passives.push({ source: domain, name: f.name, desc: f.text }); });
             });
 
             if (passives.length === 0) return null;

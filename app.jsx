@@ -36,14 +36,11 @@ function newChar(id) {
     companionExp1: "", companionExp1Val: 2, companionExp2: "", companionExp2Val: 2,
     companionLevelUps: {}, companionLightHope: false, companionComfortUsed: false,
     // ── Class Resources ──────────────────────────────────────
-    // Bard
-    rallyUsed: false,
-    troubadourSong1Used: false, troubadourSong2Used: false, troubadourSong3Used: false,
-    wordsmithSpeechUsed: false,
+    featureUses: {},
     // Druid
-    beastformActive: false, druidClarityUsed: false, druidWardensProtectionUsed: false,
+    beastformActive: false,
     // Guardian
-    unstoppableActive: false, unstoppableDieValue: 1, unstoppableUsed: false,
+    unstoppableActive: false, unstoppableDieValue: 1,
     // Ranger
     rangerFocusActive: false, rangerFocusTarget: "",
     // Rogue
@@ -51,13 +48,11 @@ function newChar(id) {
     // Seraph
     prayerDice: [],
     // Sorcerer
-    channelRawPowerUsed: false, arcaneChargeActive: false, transcendenceUsed: false,
+    arcaneChargeActive: false,
     // Warrior
-    battleRitualUsed: false, slayerDice: [],
+    slayerDice: [],
     // Wizard
     strangePatternNumber: 7,
-    // Blood Hunter
-    crimsonRiteActive: false, wolfFormActive: false, mutagen: "",
   };
 }
 

@@ -678,11 +678,8 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             // ── Class resource resets ────────────────────────────
             // On any rest: active states that end on rest
             next.beastformActive = false;
-            next.wolfFormActive  = false;
             next.unstoppableActive = false;
-            next.crimsonRiteActive = false;
             next.arcaneChargeActive = false;
-            next.patronsMantleActive = false;
             next.cloaked = false;
             // On any rest: clear rest-recharge feature uses
             {
@@ -697,7 +694,6 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               for (const key of Object.keys(fu))
                 if (fu[key] && lookupFeatureRecharge(key) === "longRest") delete fu[key];
               next.featureUses = fu;
-              next.talismanExists = false;
               next.poisonTokens = 0;
               next.slayerDice = [];
               next.prayerDice = [];

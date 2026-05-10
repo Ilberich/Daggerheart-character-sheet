@@ -288,32 +288,7 @@ const [passivesOpen, setPassivesOpen] = useState(true);
               );
             }
 
-            // ── BLOOD HUNTER ──────────────────────────────────
-            if (c.className === "Blood Hunter") {
-              resources.push(
-                <ActiveToggle key="rite" label="Crimson Rite (weapon enchanted)" active={c.crimsonRiteActive || false} onToggle={() => u("crimsonRiteActive", !(c.crimsonRiteActive || false))} activeColor="#ef4444" />
-              );
-              if (c.subclass === "Order of the Lycan") {
-                resources.push(
-                  <ActiveToggle key="wolf" label="Wolf Form" active={c.wolfFormActive || false} onToggle={() => u("wolfFormActive", !(c.wolfFormActive || false))} activeColor="#f97316" />
-                );
-              }
-              if (c.subclass === "Order of the Mutant") {
-                const mutagens = ["None", "Celerity", "Durable", "Hunter's Senses"];
-                resources.push(
-                  <div key="mutagen" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                    <Lbl style={{ marginBottom: 4 }}>Active Mutagen</Lbl>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {mutagens.map(m => (
-                        <button key={m} onClick={() => u("mutagen", m === "None" ? "" : m)} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${(c.mutagen || "") === (m === "None" ? "" : m) ? P.accent : P.border}`, background: (c.mutagen || "") === (m === "None" ? "" : m) ? P.accent + "22" : P.surface, color: (c.mutagen || "") === (m === "None" ? "" : m) ? P.accent : P.textMuted }}>{m}</button>
-                      ))}
-                    </div>
-                    {c.mutagen && <div style={{ marginTop: 6, fontSize: 11, color: P.textMuted }}>Active: +1 trait of choice, −1 different trait</div>}
-                  </div>
-                );
-              }
-            }
-
+            
 
             if (resources.length === 0) return null;
             return (

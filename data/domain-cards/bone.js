@@ -17,7 +17,7 @@ export const Bone = [
     level: 1, name: "Untouchable", type: "Ability", recallCost: 1,
     cost: null,
     passive: true,
-    statEffects: [{ stat: "evasion", amount: "halfAgility" }],
+    statEffects: [{ stat: "evasion", amount: { of: "agility", multiply: 0.5, round: "up" } }],
     summary: "Passive: +½ Agility to Evasion (permanent)",
     text: "Gain a bonus to your Evasion equal to half your Agility."
   },

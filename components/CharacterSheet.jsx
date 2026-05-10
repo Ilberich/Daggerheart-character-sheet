@@ -239,13 +239,16 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const hasUntouchable = selectedCards.includes("Bone::Untouchable"); // kept for display badges
   const isArmored      = !!c.armor;
 
-  // Resolve computed amount strings to numeric values
-  const resolveAmount = (amount) => {
-    if (amount === "proficiency") return prof;
-    if (amount === "halfAgility") return Math.ceil(effTraits.Agility / 2);
-    if (amount === "3+strength")  return Math.max(0, 3 + effTraits.Strength);
-    return amount;
-  };
+  function resolveAmount(amount, effTraits, prof, c) {
+    if (typeof amount === "number") return amount;
+    if (!amount || !amount.of) return 0;
+    let base;
+    if (amount.of === "proficiency") base = prof;
+    else if (amount.of === "level") base = c.level;
+    else base = effTraits[amount.of.charAt(0).toUpperCase() + amount.of.slice(1)] ?? 0;
+    const result = base * (amount.multiply ?? 1) + (amount.add ?? 0);
+    return (amount.round === "down") ? Math.floor(result) : Math.ceil(result);
+  }
 
   // Apply a single statEffect object to the bonus accumulators
   const applyStatEffect = (effect) => {
@@ -264,7 +267,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
       return;
     }
 
-    const amt = resolveAmount(effect.amount);
+    const amt = resolveAmount(effect.amount, effTraits, prof, c);
     switch (effect.stat) {
       case "hp":              hpBonus              += amt; break;
       case "stress":          stressBonus          += amt; break;

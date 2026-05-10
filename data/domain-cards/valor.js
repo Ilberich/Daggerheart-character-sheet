@@ -5,7 +5,7 @@ export const Valor = [
     passive: true,
     statEffects: [
       { stat: "thresholds", type: "override", condition: "unarmored" },
-      { stat: "armorScore", amount: "3+strength", condition: "unarmored" },
+      { stat: "armorScore", amount: { of: "strength", add: 3 }, condition: "unarmored" },
     ],
     summary: "Passive: Unarmored → Armor = 3+STR · Thresholds: T1 9/19 · T2 11/24 · T3 13/31 · T4 15/38",
     text: "When you choose not to equip armor, you have a base Armor Score of 3 + your Strength and use the following as your base damage thresholds:\n• Tier 1: 9/19\n• Tier 2: 11/24\n• Tier 3: 13/31\n• Tier 4: 15/38"
@@ -124,12 +124,12 @@ export const Valor = [
     cost: null,
     passive: true,
     text: "Gain a bonus to your Severe threshold equal to your Proficiency.\nWhen you mark 1 or more Hit Points from an attack, clear a Stress.",
-    statEffects: [{ stat: "severeThreshold", amount: "proficiency" }],
+    statEffects: [{ stat: "severeThreshold", amount: { of: "proficiency" } }],
     abilities: [
       {
         name: "Rise Up",
         passive: true,
-        statEffects: [{ stat: "severeThreshold", amount: "proficiency" }],
+        statEffects: [{ stat: "severeThreshold", amount: { of: "proficiency" } }],
         summary: "Passive: +Proficiency to Severe damage threshold",
         text: "Gain a bonus to your Severe threshold equal to your Proficiency.",
       },

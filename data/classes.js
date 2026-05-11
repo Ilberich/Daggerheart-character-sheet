@@ -320,7 +320,7 @@ export const CLASSES = {
       },
     ],
     classResources: [
-      { name: "Unstoppable Die", type: "pool", display: "counter", min: 1, max: 6, upgradesAt: { level: 5, max: 8 }, defaultValue: 1, recharge: "longRest", resetValue: 1 }
+      { name: "Unstoppable Die", type: "pool", display: "counter", min: 1, max: 4, upgradesAt: { level: 5, max: 6 }, defaultValue: 1, recharge: "longRest", resetValue: 1 }
     ],
     items: "A totem from your mentor or a secret key",
     suggestedTraits: { Agility: 0, Strength: 2, Finesse: 0, Instinct: 1, Presence: -1, Knowledge: 1 },

@@ -6,6 +6,169 @@ import { getTrait } from '../../utils/advancement.js';
 import { TRAIT_KEYS, TRAIT_ACTIONS } from '../../data/config.js';
 import { Card, Lbl, Inp, Pip } from '../ui.jsx';
 
+function ClassResourcesPanel({ c, u, cls, sub, prof }) {
+  const [trackerAdd, setTrackerAdd] = useState({});
+  const [trackerDel, setTrackerDel] = useState({});
+
+  const crs = c.classResourceState || {};
+  const updateRes = (name, val) => u("classResourceState", { ...crs, [name]: val });
+
+  const resolveMax = (maxSpec) => {
+    if (typeof maxSpec === "number") return maxSpec;
+    if (!maxSpec || !maxSpec.of) return 99;
+    if (maxSpec.of === "proficiency") return prof;
+    if (maxSpec.of === "spellcast") return Math.max(1, getTrait(c, sub?.spellcast || "Strength"));
+    return 99;
+  };
+
+  const resources = cls.classResources || [];
+
+  return (
+    <Card>
+      <Lbl>Class Resources</Lbl>
+      <div style={{ marginTop: 4 }}>
+        {resources.map(res => {
+          const { name, type } = res;
+          const state = crs[name];
+
+          if (type === "bool") {
+            const hasTarget = !!res.hasTarget;
+            const active = hasTarget ? (state?.active ?? res.defaultValue ?? false) : (state ?? res.defaultValue ?? false);
+            const col = P.accent;
+            const onToggle = () => {
+              if (hasTarget) updateRes(name, { active: !active, target: state?.target || "" });
+              else updateRes(name, !active);
+            };
+            return (
+              <div key={name} style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: active ? col : P.text }}>{name}</div>
+                  <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${active ? col : P.border}`, background: active ? col + "22" : "transparent", color: active ? col : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    {active ? "Active" : "Inactive"}
+                  </button>
+                </div>
+                {hasTarget && active && (
+                  <Inp value={state?.target || ""} onChange={v => updateRes(name, { active, target: v })} placeholder="Target name…" style={{ marginTop: 4 }} />
+                )}
+              </div>
+            );
+          }
+
+          if (type === "pool" && res.display === "counter") {
+            const effectiveMax = (res.upgradesAt && c.level >= res.upgradesAt.level) ? res.upgradesAt.max : res.max;
+            const val = state ?? res.defaultValue ?? res.min ?? 0;
+            return (
+              <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>{name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={() => updateRes(name, Math.max(res.min ?? 0, val - 1))} disabled={val <= (res.min ?? 0)} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 16, cursor: val > (res.min ?? 0) ? "pointer" : "default", fontFamily: "inherit", opacity: val <= (res.min ?? 0) ? 0.4 : 1 }}>−</button>
+                  <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 24, textAlign: "center" }}>{val}</span>
+                  <button onClick={() => updateRes(name, Math.min(effectiveMax, val + 1))} disabled={val >= effectiveMax} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 16, cursor: val < effectiveMax ? "pointer" : "default", fontFamily: "inherit", opacity: val >= effectiveMax ? 0.4 : 1 }}>+</button>
+                </div>
+              </div>
+            );
+          }
+
+          if (type === "pool" && res.display === "dicePool") {
+            const maxDice = resolveMax(res.max);
+            const dice = Array.isArray(state) ? state : [];
+            const effectiveSides = (res.upgradesAt && c.level >= res.upgradesAt.level) ? res.upgradesAt.sides : res.sides;
+            const canAdd = dice.length < maxDice;
+            return (
+              <div key={name} style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>{name}</div>
+                    <div style={{ fontSize: 10, color: P.textMuted }}>d{effectiveSides} · max {maxDice} · tap to spend</div>
+                  </div>
+                  <button onClick={() => { if (canAdd) updateRes(name, [...dice, Math.floor(Math.random() * effectiveSides) + 1]); }} disabled={!canAdd} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.hope}`, background: canAdd ? P.hope + "22" : "transparent", color: canAdd ? P.hope : P.textMuted, fontSize: 11, fontWeight: 700, cursor: canAdd ? "pointer" : "default", fontFamily: "inherit", opacity: canAdd ? 1 : 0.5 }}>+ Roll d{effectiveSides}</button>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {dice.length === 0 && <span style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>No dice</span>}
+                  {dice.map((val, i) => (
+                    <button key={i} onClick={() => updateRes(name, dice.filter((_, j) => j !== i))} style={{ width: 36, height: 36, borderRadius: 8, border: `2px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 14, fontWeight: 800, fontFamily: mono, cursor: "pointer" }} title="Tap to spend">{val}</button>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          if (type === "setting" && res.inputType === "number") {
+            const val = state ?? res.defaultValue ?? res.min ?? 0;
+            return (
+              <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>{name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <button onClick={() => updateRes(name, Math.max(res.min ?? 0, val - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
+                  <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 28, textAlign: "center" }}>{val}</span>
+                  <button onClick={() => updateRes(name, Math.min(res.max ?? 99, val + 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>+</button>
+                </div>
+              </div>
+            );
+          }
+
+          if (type === "tracker") {
+            const effectiveSides = (res.upgradesAt && c.level >= res.upgradesAt.level) ? res.upgradesAt.sides : res.sides;
+            const items = Array.isArray(state) ? state : [];
+            const addText = trackerAdd[name];
+            let delTimer = null;
+            const startDelMode = (i) => { delTimer = setTimeout(() => setTrackerDel(d => ({ ...d, [name]: i })), 500); };
+            const cancelDelMode = () => { clearTimeout(delTimer); };
+            return (
+              <div key={name} style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>{name}</div>
+                    <div style={{ fontSize: 10, color: P.textMuted }}>d{effectiveSides} · hold to delete</div>
+                  </div>
+                  {trackerDel[name] != null
+                    ? <button onClick={() => setTrackerDel(d => ({ ...d, [name]: null }))} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+                    : null}
+                </div>
+                {items.length === 0 && addText === undefined && (
+                  <div style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic", marginBottom: 4 }}>No allies added yet</div>
+                )}
+                {items.map((item, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}
+                    onPointerDown={() => startDelMode(i)}
+                    onPointerUp={cancelDelMode}
+                    onPointerLeave={cancelDelMode}>
+                    <input type="checkbox" checked={item.used} onChange={() => {
+                      const next = items.map((it, j) => j === i ? { ...it, used: !it.used } : it);
+                      updateRes(name, next);
+                    }} style={{ width: 16, height: 16, cursor: "pointer", accentColor: P.accent }} />
+                    <span style={{ fontSize: 12, color: item.used ? P.textMuted : P.text, textDecoration: item.used ? "line-through" : "none", flex: 1 }}>{item.name}</span>
+                    {trackerDel[name] === i && (
+                      <button onClick={() => { updateRes(name, items.filter((_, j) => j !== i)); setTrackerDel(d => ({ ...d, [name]: null })); }}
+                        style={{ fontSize: 11, padding: "2px 8px", borderRadius: 5, border: `1px solid ${P.fear}`, background: P.fear + "22", color: P.fear, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                    )}
+                  </div>
+                ))}
+                {addText !== undefined ? (
+                  <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                    <Inp value={addText} onChange={v => setTrackerAdd(a => ({ ...a, [name]: v }))} placeholder="Ally name…" style={{ flex: 1 }} />
+                    <button onClick={() => {
+                      if (addText.trim()) updateRes(name, [...items, { name: addText.trim(), used: false }]);
+                      setTrackerAdd(a => { const n = { ...a }; delete n[name]; return n; });
+                    }} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.accent}`, background: P.accent + "22", color: P.accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Add</button>
+                    <button onClick={() => setTrackerAdd(a => { const n = { ...a }; delete n[name]; return n; })}
+                      style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setTrackerAdd(a => ({ ...a, [name]: "" }))}
+                    style={{ marginTop: 4, fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, cursor: "pointer", fontFamily: "inherit" }}>+ Add ally</button>
+                )}
+              </div>
+            );
+          }
+
+          return null;
+        })}
+      </div>
+    </Card>
+  );
+}
+
 export function PlayTab({
   c, u, tog,
   fEv, aS, mT, sT, maxHp, maxStress, prof,
@@ -122,188 +285,9 @@ const [passivesOpen, setPassivesOpen] = useState(true);
           </Card>}
 
           {/* ── CLASS RESOURCES ─────────────────────────────── */}
-          {c.className && c.subclass && (() => {
-            // Reusable helpers
-            const ActiveToggle = ({ label, active, onToggle, activeColor }) => {
-              const col = activeColor || P.accent;
-              return (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: active ? col : P.text }}>{label}</div>
-                  <button onClick={onToggle} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${active ? col : P.border}`, background: active ? col + "22" : "transparent", color: active ? col : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    {active ? "Active" : "Inactive"}
-                  </button>
-                </div>
-              );
-            };
-            const Counter = ({ label, value, onInc, onDec, min = 0, max = 99, note }) => (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>{label}</div>
-                  {note && <div style={{ fontSize: 10, color: P.textMuted }}>{note}</div>}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <button onClick={onDec} disabled={value <= min} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 16, cursor: value > min ? "pointer" : "default", fontFamily: "inherit", opacity: value <= min ? 0.4 : 1 }}>−</button>
-                  <span style={{ fontSize: 16, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 24, textAlign: "center" }}>{value}</span>
-                  <button onClick={onInc} disabled={value >= max} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 16, cursor: value < max ? "pointer" : "default", fontFamily: "inherit", opacity: value >= max ? 0.4 : 1 }}>+</button>
-                </div>
-              </div>
-            );
-
-            const resources = [];
-
-// ── DRUID ─────────────────────────────────────────
-            if (c.className === "Druid") {
-              resources.push(
-                <ActiveToggle key="beastform" label="Beastform" active={c.beastformActive || false} onToggle={() => u("beastformActive", !(c.beastformActive || false))} activeColor="#22c55e" />
-              );
-
-            }
-
-            // ── GUARDIAN ──────────────────────────────────────
-            if (c.className === "Guardian") {
-              const dieMax = c.level >= 5 ? 6 : 4;
-              const dieVal = c.unstoppableDieValue || 1;
-              resources.push(
-                <div key="unstoppable" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: (c.unstoppableActive || false) ? P.fear : P.text }}>Unstoppable {(c.unstoppableActive || false) ? `(d${dieMax}, value: ${dieVal})` : ""}</div>
-                      <div style={{ fontSize: 10, color: P.textMuted }}>Once per long rest</div>
-                    </div>
-                    {!c.featureUses?.["Guardian::Unstoppable"] && !(c.unstoppableActive || false) && (
-                      <button onClick={() => { u("unstoppableActive", true); u("unstoppableDieValue", 1); u("featureUses", { ...c.featureUses, "Guardian::Unstoppable": true }); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${P.fear}`, background: P.fear + "22", color: P.fear, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Activate</button>
-                    )}
-                    {!!c.featureUses?.["Guardian::Unstoppable"] && !(c.unstoppableActive || false) && (
-                      <span style={{ fontSize: 11, color: P.textMuted, fontWeight: 700 }}>✓ Used</span>
-                    )}
-                    {(c.unstoppableActive || false) && (
-                      <button onClick={() => u("unstoppableActive", false)} style={{ padding: "4px 12px", borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>End</button>
-                    )}
-                  </div>
-                  {(c.unstoppableActive || false) && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 11, color: P.textMuted }}>Die value:</span>
-                      <button onClick={() => u("unstoppableDieValue", Math.max(1, dieVal - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
-                      <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.fear, minWidth: 24, textAlign: "center" }}>{dieVal}</span>
-                      <button onClick={() => { if (dieVal < dieMax) u("unstoppableDieValue", dieVal + 1); else u("unstoppableActive", false); }} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>{dieVal < dieMax ? "+" : "⚡"}</button>
-                      <span style={{ fontSize: 10, color: P.textMuted }}>max {dieMax} (⚡ = auto-end)</span>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            // ── RANGER ────────────────────────────────────────
-            if (c.className === "Ranger") {
-              resources.push(
-                <div key="focus" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: (c.rangerFocusActive || false) ? 6 : 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: (c.rangerFocusActive || false) ? "#84cc16" : P.text }}>Ranger's Focus</div>
-                    <button onClick={() => { u("rangerFocusActive", !(c.rangerFocusActive || false)); if (c.rangerFocusActive) u("rangerFocusTarget", ""); }} style={{ padding: "4px 12px", borderRadius: 6, border: `2px solid ${(c.rangerFocusActive || false) ? "#84cc16" : P.border}`, background: (c.rangerFocusActive || false) ? "#84cc1622" : "transparent", color: (c.rangerFocusActive || false) ? "#84cc16" : P.textMuted, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      {(c.rangerFocusActive || false) ? "Active" : "Inactive"}
-                    </button>
-                  </div>
-                  {(c.rangerFocusActive || false) && (
-                    <Inp value={c.rangerFocusTarget || ""} onChange={v => u("rangerFocusTarget", v)} placeholder="Target name…" style={{ marginTop: 4 }} />
-                  )}
-                </div>
-              );
-            }
-
-            // ── ROGUE ─────────────────────────────────────────
-            if (c.className === "Rogue") {
-              resources.push(
-                <ActiveToggle key="cloaked" label="Cloaked" active={c.cloaked || false} onToggle={() => u("cloaked", !(c.cloaked || false))} activeColor="#a855f7" />
-              );
-            }
-
-            // ── SERAPH ────────────────────────────────────────
-            if (c.className === "Seraph") {
-              const spellcastTrait = sub?.spellcast || "Strength";
-              const traitVal = Math.max(1, getTrait(c, spellcastTrait));
-              const dice = c.prayerDice || [];
-              resources.push(
-                <div key="prayer" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Prayer Dice</div>
-                      <div style={{ fontSize: 10, color: P.textMuted }}>Rolled each session ({spellcastTrait} = {traitVal} dice)</div>
-                    </div>
-                    <button onClick={() => { const rolled = Array.from({ length: traitVal }, () => Math.floor(Math.random() * 4) + 1); u("prayerDice", rolled); }} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Roll d4s</button>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {dice.length === 0 && <span style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>No dice — tap Roll at session start</span>}
-                    {dice.map((val, i) => (
-                      <button key={i} onClick={() => u("prayerDice", dice.filter((_, j) => j !== i))} style={{ width: 36, height: 36, borderRadius: 8, border: `2px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 14, fontWeight: 800, fontFamily: mono, cursor: "pointer" }} title="Tap to spend">{val}</button>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-
-            // ── SORCERER ──────────────────────────────────────
-            if (c.className === "Sorcerer") {
-              if (c.subclass === "Primal Origin") {
-                resources.push(
-                  <ActiveToggle key="charge" label="Arcane Charge" active={c.arcaneChargeActive || false} onToggle={() => u("arcaneChargeActive", !(c.arcaneChargeActive || false))} />
-                );
-              }
-            }
-
-            // ── WARRIOR ───────────────────────────────────────
-            if (c.className === "Warrior") {
-              if (c.subclass === "Call of the Slayer") {
-                const dice = c.slayerDice || [];
-                resources.push(
-                  <div key="slayer" style={{ padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Slayer Dice</div>
-                        <div style={{ fontSize: 10, color: P.textMuted }}>Gained on Hope rolls (max = Proficiency)</div>
-                      </div>
-                      <button onClick={() => u("slayerDice", [...dice, Math.floor(Math.random() * 6) + 1])} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ d6</button>
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {dice.length === 0 && <span style={{ fontSize: 11, color: P.textMuted, fontStyle: "italic" }}>No dice yet</span>}
-                      {dice.map((val, i) => (
-                        <button key={i} onClick={() => u("slayerDice", dice.filter((_, j) => j !== i))} style={{ width: 36, height: 36, borderRadius: 8, border: `2px solid ${P.hope}`, background: P.hope + "22", color: P.hope, fontSize: 14, fontWeight: 800, fontFamily: mono, cursor: "pointer" }} title="Tap to spend">{val}</button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-            }
-
-            // ── WIZARD ────────────────────────────────────────
-            if (c.className === "Wizard") {
-              const spn = c.strangePatternNumber || 7;
-              resources.push(
-                <div key="pattern" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${P.border}` }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: P.text }}>Strange Pattern Number</div>
-                    <div style={{ fontSize: 10, color: P.textMuted }}>Gain Hope/clear Stress when you roll this on a Duality Die</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <button onClick={() => u("strangePatternNumber", Math.max(1, spn - 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>−</button>
-                    <span style={{ fontSize: 18, fontWeight: 800, fontFamily: mono, color: P.accent, minWidth: 28, textAlign: "center" }}>{spn}</span>
-                    <button onClick={() => u("strangePatternNumber", Math.min(12, spn + 1))} style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${P.border}`, background: P.surface, color: P.text, cursor: "pointer", fontFamily: "inherit" }}>+</button>
-                  </div>
-                </div>
-              );
-            }
-
-            
-
-            if (resources.length === 0) return null;
-            return (
-              <Card>
-                <Lbl>Class Resources</Lbl>
-                <div style={{ marginTop: 4 }}>
-                  {resources}
-                </div>
-              </Card>
-            );
-          })()}
+          {c.className && cls?.classResources?.length > 0 && (
+            <ClassResourcesPanel c={c} u={u} cls={cls} sub={sub} prof={prof} />
+          )}
             </>
             }
           </div>

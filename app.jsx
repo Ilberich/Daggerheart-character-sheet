@@ -37,22 +37,7 @@ function newChar(id) {
     companionLevelUps: {}, companionLightHope: false, companionComfortUsed: false,
     // ── Class Resources ──────────────────────────────────────
     featureUses: {},
-    // Druid
-    beastformActive: false,
-    // Guardian
-    unstoppableActive: false, unstoppableDieValue: 1,
-    // Ranger
-    rangerFocusActive: false, rangerFocusTarget: "",
-    // Rogue
-    cloaked: false,
-    // Seraph
-    prayerDice: [],
-    // Sorcerer
-    arcaneChargeActive: false,
-    // Warrior
-    slayerDice: [],
-    // Wizard
-    strangePatternNumber: 7,
+    classResourceState: {},
   };
 }
 

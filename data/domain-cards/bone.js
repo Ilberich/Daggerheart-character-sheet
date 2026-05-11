@@ -127,6 +127,7 @@ export const Bone = [
         passive: false,
         summary: "During short rest · Choose a long rest downtime move instead",
         text: "During a short rest, you can choose a long rest downtime move instead.",
+        restEffect: { trigger: "short", effect: "extraLongRestMove", amount: 1 },
       },
       {
         name: "Share Recovery",

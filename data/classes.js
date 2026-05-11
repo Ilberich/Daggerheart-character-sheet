@@ -102,6 +102,9 @@ export const CLASSES = {
         text: "Rally: Once per session, describe how you rally the party and give yourself and each of your allies a Rally Die. At level 1, your Rally Die is a d6. A PC can spend their Rally Die to roll it, adding the result to their action roll, reaction roll, damage roll, or to clear a number of Stress equal to the result. At the end of each session, clear all unspent Rally Dice.\n\nAt level 5, your Rally Die increases to a d8."
       },
     ],
+    classResources: [
+      { name: "Rally Die", type: "tracker", sides: 6, upgradesAt: { level: 5, sides: 8 }, recharge: "session", description: "Track which allies have used their Rally Die this session" }
+    ],
     items: "A romance novel or a letter never opened",
     suggestedTraits: { Agility: 0, Strength: -1, Finesse: 1, Instinct: 0, Presence: 2, Knowledge: 1 },
   },
@@ -192,6 +195,9 @@ export const CLASSES = {
         summary: "Passive: Perform harmless nature effects at will (grow flower, gust of wind, start campfire)",
         text: "Wildtouch: You can perform harmless, subtle effects that involve nature—such as causing a flower to rapidly grow, summoning a slight gust of wind, or starting a campfire—at will."
       },
+    ],
+    classResources: [
+      { name: "Beastform", type: "bool", defaultValue: false, recharge: null, hasTarget: false }
     ],
     items: "A small bag of rocks and bones or a strange pendant found in the dirt",
     suggestedTraits: { Agility: 0, Strength: -1, Finesse: 0, Instinct: 2, Presence: 1, Knowledge: 1 },
@@ -313,6 +319,9 @@ export const CLASSES = {
         text: "Unstoppable: Once per long rest, you can become Unstoppable. You gain an Unstoppable Die. At level 1, your Unstoppable Die is a d4. Place it on this sheet in the space provided, starting with the 1 value facing up. After you make a damage roll that deals 1 or more Hit Points to a target, increase the Unstoppable Die value by one. When the die's value would exceed its maximum value or when the scene ends, remove the die and drop out of Unstoppable. At level 5, your Unstoppable Die increases to a d6.\n\nWhile Unstoppable, you gain the following benefits:\n• You reduce the severity of physical damage by one threshold (Severe to Major, Major to Minor, Minor to None).\n• You add the current value of the Unstoppable Die to your damage roll.\n• You can't be Restrained or Vulnerable."
       },
     ],
+    classResources: [
+      { name: "Unstoppable Die", type: "pool", display: "counter", min: 1, max: 6, upgradesAt: { level: 5, max: 8 }, defaultValue: 1, recharge: "longRest", resetValue: 1 }
+    ],
     items: "A totem from your mentor or a secret key",
     suggestedTraits: { Agility: 0, Strength: 2, Finesse: 0, Instinct: 1, Presence: -1, Knowledge: 1 },
   },
@@ -409,6 +418,9 @@ export const CLASSES = {
         text: "Ranger's Focus: Spend a Hope and make an attack against a target. On a success, deal your attack's normal damage and temporarily make the attack's target your Focus. Until this feature ends or you make a different creature your Focus, you gain the following benefits against your Focus:\n• You know precisely what direction they are in.\n• When you deal damage to them, they must mark a Stress.\n• When you fail an attack against them, you can end your Ranger's Focus feature to reroll your Duality Dice."
       },
     ],
+    classResources: [
+      { name: "Ranger's Focus", type: "bool", defaultValue: false, recharge: null, hasTarget: true }
+    ],
     items: "A trophy from your first kill or a seemingly broken compass",
     suggestedTraits: { Agility: 2, Strength: 0, Finesse: 1, Instinct: 1, Presence: -1, Knowledge: 0 },
   },
@@ -499,6 +511,9 @@ export const CLASSES = {
         text: "Sneak Attack: When you succeed on an attack while Cloaked or while an ally is within Melee range of your target, add a number of d6s equal to your tier to your damage roll.\n\nLevel 1 is Tier 1\nLevels 2–4 are Tier 2\nLevels 5–7 are Tier 3\nLevels 8–10 are Tier 4"
       },
     ],
+    classResources: [
+      { name: "Cloaked", type: "bool", defaultValue: false, recharge: null }
+    ],
     items: "A set of forgery tools or a grappling hook",
     suggestedTraits: { Agility: 1, Strength: -1, Finesse: 2, Instinct: 0, Presence: 1, Knowledge: 0 },
   },
@@ -583,6 +598,9 @@ export const CLASSES = {
         text: "Prayer Dice: At the beginning of each session, roll a number of d4s equal to your subclass's Spellcast trait and place them on this sheet in the space provided. These are your Prayer Dice. You can spend any number of Prayer Dice to aid yourself or an ally within Far range. You can use a spent die's value to reduce incoming damage, add to a roll's result after the roll is made, or gain Hope equal to the result. At the end of each session, clear all unspent Prayer Dice."
       },
     ],
+    classResources: [
+      { name: "Prayer Dice", type: "pool", display: "dicePool", sides: 4, max: { of: "spellcast" }, recharge: "session", rechargeMethod: "roll" }
+    ],
     items: "A bundle of offerings or a sigil of your god",
     suggestedTraits: { Agility: 0, Strength: 2, Finesse: 0, Instinct: 1, Presence: 1, Knowledge: -1 },
   },
@@ -649,6 +667,9 @@ export const CLASSES = {
         summary: "Once per long rest · Vault a domain card from loadout · Choose: gain Hope = card level, OR bonus to magic damage roll = 2× card level",
         text: "Channel Raw Power: Once per long rest, you can place a domain card from your loadout into your vault and choose to either:\n• Gain Hope equal to the level of the card.\n• Enhance a spell that deals damage, gaining a bonus to your damage roll equal to twice the level of the card."
       },
+    ],
+    classResources: [
+      { name: "Arcane Charge", type: "bool", defaultValue: false, recharge: null }
     ],
     items: "A whispering orb or a family heirloom",
     suggestedTraits: { Agility: 0, Strength: -1, Finesse: 1, Instinct: 2, Presence: 1, Knowledge: 0 },
@@ -723,6 +744,9 @@ export const CLASSES = {
         summary: "Passive: Ignore burden when equipping weapons · Physical damage deals bonus = your level",
         text: "Combat Training: You ignore burden when equipping weapons. When you deal physical damage, you gain a bonus to your damage roll equal to your level."
       },
+    ],
+    classResources: [
+      { name: "Slayer Dice", type: "pool", display: "dicePool", sides: 6, max: { of: "proficiency" }, recharge: "session", rechargeMethod: "onHope" }
     ],
     items: "The drawing of a lover or a sharpening stone",
     suggestedTraits: { Agility: 1, Strength: 2, Finesse: 0, Instinct: 0, Presence: -1, Knowledge: 1 },
@@ -866,6 +890,9 @@ export const CLASSES = {
         summary: "Choose a number 1–12 · When you roll that number on a Duality Die → gain a Hope or clear a Stress · Change number on long rest",
         text: "Strange Patterns: Choose a number between 1 and 12. When you roll that number on a Duality Die, gain a Hope or clear a Stress. You can change this number when you take a long rest."
       },
+    ],
+    classResources: [
+      { name: "Strange Patterns", type: "setting", inputType: "number", min: 1, max: 12, defaultValue: 7, recharge: "longRest" }
     ],
     items: "A book you're trying to translate or a tiny, harmless elemental pet",
     suggestedTraits: { Agility: -1, Strength: 0, Finesse: 0, Instinct: 1, Presence: 1, Knowledge: 2 },

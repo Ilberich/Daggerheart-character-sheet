@@ -94,7 +94,16 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
       const fu = { ...(prev.featureUses || {}) };
       for (const key of Object.keys(fu))
         if (fu[key] && lookupFeatureRecharge(key) === "session") delete fu[key];
-      return { ...prev, featureUses: fu };
+      const clsRes = CLASSES[prev.className]?.classResources || [];
+      const crs = { ...(prev.classResourceState || {}) };
+      clsRes.forEach(res => {
+        if (res.recharge !== "session") return;
+        if (res.type === "pool")
+          crs[res.name] = res.display === "dicePool" ? [] : (res.defaultValue ?? res.min ?? 0);
+        if (res.type === "tracker")
+          crs[res.name] = (Array.isArray(crs[res.name]) ? crs[res.name] : []).map(item => ({ ...item, used: false }));
+      });
+      return { ...prev, featureUses: fu, classResourceState: crs };
     });
   }, []);
   const toggleRestChoice = useCallback((id) => {
@@ -679,11 +688,6 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
               }
             });
             // ── Class resource resets ────────────────────────────
-            // On any rest: active states that end on rest
-            next.beastformActive = false;
-            next.unstoppableActive = false;
-            next.arcaneChargeActive = false;
-            next.cloaked = false;
             // On any rest: clear rest-recharge feature uses
             {
               const fu = { ...(next.featureUses || {}) };
@@ -691,15 +695,35 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 if (fu[key] && lookupFeatureRecharge(key) === "rest") delete fu[key];
               next.featureUses = fu;
             }
-            // On long rest: clear longRest-recharge feature uses + other resources
+            // On long rest: clear longRest-recharge feature uses
             if (isLong) {
               const fu = { ...next.featureUses };
               for (const key of Object.keys(fu))
                 if (fu[key] && lookupFeatureRecharge(key) === "longRest") delete fu[key];
               next.featureUses = fu;
               next.poisonTokens = 0;
-              next.slayerDice = [];
-              next.prayerDice = [];
+            }
+            // classResourceState resets
+            {
+              const clsCurrent = CLASSES[next.className];
+              const clsResources = clsCurrent?.classResources || [];
+              const crs = { ...(next.classResourceState || {}) };
+              clsResources.forEach(res => {
+                const { name, type, recharge, defaultValue } = res;
+                if (type === "bool" && (recharge === "rest" || recharge === "longRest"))
+                  crs[name] = defaultValue ?? false;
+                if (type === "pool" && recharge === "rest")
+                  crs[name] = res.display === "dicePool" ? [] : (defaultValue ?? res.min ?? 0);
+                if (isLong) {
+                  if (type === "pool" && recharge === "longRest")
+                    crs[name] = res.display === "dicePool" ? [] : (defaultValue ?? res.min ?? 0);
+                  if (type === "setting" && recharge === "longRest")
+                    crs[name] = defaultValue ?? 0;
+                  if (type === "tracker" && recharge === "longRest")
+                    crs[name] = (Array.isArray(crs[name]) ? crs[name] : []).map(item => ({ ...item, used: false }));
+                }
+              });
+              next.classResourceState = crs;
             }
 
             return next;
@@ -710,9 +734,45 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
           setRestChoices([]);
         };
 
-        const opts    = restModal === "short" ? SHORT_OPTIONS : restModal === "long" ? LONG_OPTIONS : [];
         const isLong  = restModal === "long";
         const isChoose = restModal === "choose";
+
+        // Collect restEffect entries from all active feature sources
+        const collectRestEffects = (restType) => {
+          const effects = [];
+          const check = (obj) => {
+            if (!obj) return;
+            if (obj.restEffect && (obj.restEffect.trigger === "any" || obj.restEffect.trigger === restType))
+              effects.push(obj.restEffect);
+            (obj.abilities || []).forEach(ab => {
+              if (ab.restEffect && (ab.restEffect.trigger === "any" || ab.restEffect.trigger === restType))
+                effects.push(ab.restEffect);
+            });
+          };
+          getActiveAncestryFeatures(c).forEach(check);
+          check(COMMUNITIES[c.community]);
+          (c.selectedCards || []).forEach(key => {
+            const sep = key.indexOf('::');
+            if (sep === -1) return;
+            const card = (DOMAIN_CARDS[key.slice(0, sep)] || []).find(cd => cd.name === key.slice(sep + 2));
+            check(card);
+          });
+          (cls?.classFeatures || []).forEach(check);
+          if (sub) {
+            const tiers = ["foundation", ...(subclassLevel >= 2 ? ["specialization"] : []), ...(subclassLevel >= 3 ? ["mastery"] : [])];
+            tiers.forEach(t => check(sub[t]));
+          }
+          return effects;
+        };
+
+        const restType = isLong ? "long" : "short";
+        const activeRestEffects = isChoose ? [] : collectRestEffects(restType);
+        const extraDowntimePicks = activeRestEffects.filter(e => e.effect === "extraDowntimeMove").reduce((s, e) => s + e.amount, 0);
+        const hasExtraLongRestMove = activeRestEffects.some(e => e.effect === "extraLongRestMove");
+        const maxPicks = 2 + extraDowntimePicks;
+
+        const shortOpts = hasExtraLongRestMove ? [...SHORT_OPTIONS, ...LONG_OPTIONS] : SHORT_OPTIONS;
+        const opts = restModal === "short" ? shortOpts : restModal === "long" ? LONG_OPTIONS : [];
 
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
@@ -741,7 +801,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: isLong ? P.accent : P.hope }}>{isLong ? "Long Rest" : "Short Rest"}</div>
                     <div style={{ fontSize: 11, color: P.textMuted }}>
-                      {restChoices.length}/2 moves chosen
+                      {restChoices.length}/{maxPicks} moves chosen
                       {!isLong && ` · Tier ${tier} · Recovery: 1d4+${tier}`}
                       {` · You can pick the same move twice`}
                     </div>
@@ -753,25 +813,12 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                     const countSelected = restChoices.filter(x => x === opt.id).length;
                     const totalSelected = restChoices.length;
                     const accentColor = isLong ? P.accent : P.hope;
-                    // Each slot is independent: slot 0 = first pick, slot 1 = second pick
                     const handleSlot = (e, slot) => {
                       e.stopPropagation();
-                      if (slot === 0) {
-                        if (countSelected >= 1) {
-                          // Remove one instance of this id (deselect slot 0)
-                          setRestChoices(prev => { const i = prev.indexOf(opt.id); return i === -1 ? prev : [...prev.slice(0, i), ...prev.slice(i + 1)]; });
-                        } else if (totalSelected < 2) {
-                          // Add first instance
-                          setRestChoices(prev => [...prev, opt.id]);
-                        }
-                      } else {
-                        if (countSelected >= 2) {
-                          // Remove second instance (deselect slot 1)
-                          setRestChoices(prev => { const i = prev.lastIndexOf(opt.id); return i === -1 ? prev : [...prev.slice(0, i), ...prev.slice(i + 1)]; });
-                        } else if (countSelected === 1 && totalSelected < 2) {
-                          // Add second instance — explicitly push, never remove
-                          setRestChoices(prev => [...prev, opt.id]);
-                        }
+                      if (slot < countSelected) {
+                        setRestChoices(prev => { const i = prev.lastIndexOf(opt.id); return i === -1 ? prev : [...prev.slice(0, i), ...prev.slice(i + 1)]; });
+                      } else if (slot === countSelected && totalSelected < maxPicks) {
+                        setRestChoices(prev => [...prev, opt.id]);
                       }
                     };
                     return (
@@ -781,21 +828,18 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                           background: countSelected > 0 ? accentColor + "18" : P.surface,
                           transition: "all .15s" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 2 }}>
-                          {[0, 1].map(slot => {
+                          {Array.from({ length: maxPicks }, (_, slot) => {
                             const filled = slot < countSelected;
-                            const slot1Locked = slot === 1 && countSelected < 1;
-                            const slot1Full   = slot === 1 && countSelected < 1 && totalSelected >= 2;
-                            const canClick = slot === 0
-                              ? (countSelected >= 1 || totalSelected < 2)
-                              : (countSelected >= 2 || (countSelected === 1 && totalSelected < 2));
+                            const locked = slot > 0 && countSelected < slot;
+                            const canClick = slot < countSelected || (slot === countSelected && totalSelected < maxPicks);
                             return (
                               <div key={slot} onClick={(e) => canClick && handleSlot(e, slot)}
                                 style={{ width: 22, height: 22, borderRadius: 6,
-                                  border: `2px solid ${filled ? accentColor : slot1Locked ? P.border + "55" : P.border}`,
+                                  border: `2px solid ${filled ? accentColor : locked ? P.border + "55" : P.border}`,
                                   background: filled ? accentColor : "transparent",
                                   flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                                   cursor: canClick ? "pointer" : "default",
-                                  opacity: slot1Locked ? 0.3 : 1,
+                                  opacity: locked ? 0.3 : 1,
                                   transition: "all .15s" }}>
                                 {filled && <span style={{ color: isLong ? "#fff" : "#000", fontSize: 12, fontWeight: 900, lineHeight: 1 }}>✓</span>}
                               </div>

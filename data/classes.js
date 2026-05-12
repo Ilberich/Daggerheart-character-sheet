@@ -669,7 +669,7 @@ export const CLASSES = {
       },
     ],
     classResources: [
-      { name: "Arcane Charge", type: "bool", defaultValue: false, recharge: null }
+      { name: "Arcane Charge", type: "bool", defaultValue: false, recharge: null, subclass: "Primal Origin" }
     ],
     items: "A whispering orb or a family heirloom",
     suggestedTraits: { Agility: 0, Strength: -1, Finesse: 1, Instinct: 2, Presence: 1, Knowledge: 0 },
@@ -746,7 +746,7 @@ export const CLASSES = {
       },
     ],
     classResources: [
-      { name: "Slayer Dice", type: "pool", display: "dicePool", sides: 6, max: { of: "proficiency" }, recharge: "session", rechargeMethod: "onHope" }
+      { name: "Slayer Dice", type: "pool", display: "dicePool", sides: 6, max: { of: "proficiency" }, recharge: "session", rechargeMethod: "onHope", subclass: "Call of the Slayer" }
     ],
     items: "The drawing of a lover or a sharpening stone",
     suggestedTraits: { Agility: 1, Strength: 2, Finesse: 0, Instinct: 0, Presence: -1, Knowledge: 1 },

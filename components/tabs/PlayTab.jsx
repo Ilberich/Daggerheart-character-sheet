@@ -21,7 +21,7 @@ function ClassResourcesPanel({ c, u, cls, sub, prof }) {
     return 99;
   };
 
-  const resources = cls.classResources || [];
+  const resources = (cls.classResources || []).filter(res => !res.subclass || res.subclass === c.subclass);
 
   return (
     <Card>

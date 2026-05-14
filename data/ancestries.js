@@ -8,7 +8,8 @@ export const ANCESTRIES = {
     {
       name: "Efficient", passive: true,
       summary: "On short rest · Choose a long rest move instead of a short rest move",
-      text: "Efficient: When you take a short rest, you can choose a long rest move instead of a short rest move."
+      text: "Efficient: When you take a short rest, you can choose a long rest move instead of a short rest move.",
+      restEffect: { trigger: "short", effect: "extraLongRestMove", amount: 1 }
     },
   ],
   Drakona: [
@@ -44,7 +45,8 @@ export const ANCESTRIES = {
     {
       name: "Celestial Trance", passive: true,
       summary: "During rest · Enter trance → choose an additional downtime move",
-      text: "Celestial Trance: During a rest, drop into a trance to choose an additional downtime move."
+      text: "Celestial Trance: During a rest, drop into a trance to choose an additional downtime move.",
+      restEffect: { trigger: "any", effect: "extraDowntimeMove", amount: 1 }
     },
   ],
   Faerie: [

@@ -69,8 +69,9 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const [rulesCat, setRulesCat] = useState("All");
   const [editHdr, setEditHdr] = useState(false);
   const [editExp, setEditExp] = useState(false);
-  const [restModal, setRestModal] = useState(null); // null | 'choose' | 'short' | 'long'
+  const [restModal, setRestModal] = useState(null); // null | 'choose' | 'short' | 'long' | 'shortLong'
   const [restChoices, setRestChoices] = useState([]);
+  const [restLongChoice, setRestLongChoice] = useState(null);
   const [restResults, setRestResults] = useState(null); // null | { type, lines[] }
   const [editingClass, setEditingClass] = useState(false);
   const [editingSubclass, setEditingSubclass] = useState(false);
@@ -94,7 +95,16 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
       const fu = { ...(prev.featureUses || {}) };
       for (const key of Object.keys(fu))
         if (fu[key] && lookupFeatureRecharge(key) === "session") delete fu[key];
-      return { ...prev, featureUses: fu };
+      const clsRes = CLASSES[prev.className]?.classResources || [];
+      const crs = { ...(prev.classResourceState || {}) };
+      clsRes.forEach(res => {
+        if (res.recharge !== "session") return;
+        if (res.type === "pool")
+          crs[res.name] = res.display === "dicePool" ? [] : (res.defaultValue ?? res.min ?? 0);
+        if (res.type === "tracker")
+          crs[res.name] = (Array.isArray(crs[res.name]) ? crs[res.name] : []).map(item => ({ ...item, used: false }));
+      });
+      return { ...prev, featureUses: fu, classResourceState: crs };
     });
   }, []);
   const toggleRestChoice = useCallback((id) => {
@@ -614,6 +624,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
 
         const applyRest = () => {
           const t = c.level <= 4 ? 1 : c.level <= 7 ? 2 : 3;
+          const isShortLong = restModal === "shortLong";
           const isLong = restModal === "long";
           const lines = [];
 
@@ -678,12 +689,36 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 lines.push({ icon: "📖", label: "Work on a Project", detail: "Check with your GM for progress", color: P.textMuted });
               }
             });
+            // shortLong: process the long rest pick
+            if (isShortLong && restLongChoice) {
+              const id = restLongChoice;
+              if (id === "tendAllWounds") {
+                const was = next.hp.filter(Boolean).length;
+                next.hp = Array(10).fill(false);
+                lines.push({ icon: "❤️", label: "Tend to All Wounds", detail: `Cleared ${was} Hit Point${was !== 1 ? "s" : ""}`, color: P.fear });
+              }
+              if (id === "clearAllStress") {
+                const was = next.stress.filter(Boolean).length;
+                next.stress = Array(7).fill(false);
+                lines.push({ icon: "🔥", label: "Clear All Stress", detail: `Cleared ${was} Stress`, color: P.stress });
+              }
+              if (id === "repairAllArmor") {
+                const was = next.armorSlots.filter(Boolean).length;
+                next.armorSlots = Array(12).fill(false);
+                lines.push({ icon: "🛡", label: "Repair All Armor", detail: `Repaired ${was} Armor Slot${was !== 1 ? "s" : ""}`, color: P.accent });
+              }
+              if (id === "prepare") {
+                const newHope = [...next.hope];
+                let given = 0;
+                const idx = newHope.indexOf(false); if (idx >= 0) { newHope[idx] = true; given++; }
+                next.hope = newHope;
+                lines.push({ icon: "✨", label: "Prepare (Long)", detail: `Gained ${given} Hope`, color: P.hope });
+              }
+              if (id === "workProject") {
+                lines.push({ icon: "📖", label: "Work on a Project", detail: "Check with your GM for progress", color: P.textMuted });
+              }
+            }
             // ── Class resource resets ────────────────────────────
-            // On any rest: active states that end on rest
-            next.beastformActive = false;
-            next.unstoppableActive = false;
-            next.arcaneChargeActive = false;
-            next.cloaked = false;
             // On any rest: clear rest-recharge feature uses
             {
               const fu = { ...(next.featureUses || {}) };
@@ -691,33 +726,89 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                 if (fu[key] && lookupFeatureRecharge(key) === "rest") delete fu[key];
               next.featureUses = fu;
             }
-            // On long rest: clear longRest-recharge feature uses + other resources
+            // On long rest: clear longRest-recharge feature uses
             if (isLong) {
               const fu = { ...next.featureUses };
               for (const key of Object.keys(fu))
                 if (fu[key] && lookupFeatureRecharge(key) === "longRest") delete fu[key];
               next.featureUses = fu;
               next.poisonTokens = 0;
-              next.slayerDice = [];
-              next.prayerDice = [];
+            }
+            // classResourceState resets
+            {
+              const clsCurrent = CLASSES[next.className];
+              const clsResources = clsCurrent?.classResources || [];
+              const crs = { ...(next.classResourceState || {}) };
+              clsResources.forEach(res => {
+                const { name, type, recharge, defaultValue } = res;
+                if (type === "bool" && (recharge === "rest" || recharge === "longRest"))
+                  crs[name] = defaultValue ?? false;
+                if (type === "pool" && recharge === "rest")
+                  crs[name] = res.display === "dicePool" ? [] : (defaultValue ?? res.min ?? 0);
+                if (isLong) {
+                  if (type === "pool" && recharge === "longRest")
+                    crs[name] = res.display === "dicePool" ? [] : (defaultValue ?? res.min ?? 0);
+                  if (type === "setting" && recharge === "longRest")
+                    crs[name] = defaultValue ?? 0;
+                  if (type === "tracker" && recharge === "longRest")
+                    crs[name] = (Array.isArray(crs[name]) ? crs[name] : []).map(item => ({ ...item, used: false }));
+                }
+              });
+              next.classResourceState = crs;
             }
 
             return next;
           });
 
-          setRestResults({ type: isLong ? "Long Rest" : "Short Rest", isLong, lines });
+          setRestResults({ type: isShortLong ? "Short + Long Rest" : isLong ? "Long Rest" : "Short Rest", isLong, lines });
           setRestModal(null);
           setRestChoices([]);
+          setRestLongChoice(null);
         };
 
-        const opts    = restModal === "short" ? SHORT_OPTIONS : restModal === "long" ? LONG_OPTIONS : [];
         const isLong  = restModal === "long";
         const isChoose = restModal === "choose";
 
+        // Collect restEffect entries from all active feature sources
+        const collectRestEffects = (restType) => {
+          const effects = [];
+          const check = (obj) => {
+            if (!obj) return;
+            if (obj.restEffect && (obj.restEffect.trigger === "any" || obj.restEffect.trigger === restType))
+              effects.push(obj.restEffect);
+            (obj.abilities || []).forEach(ab => {
+              if (ab.restEffect && (ab.restEffect.trigger === "any" || ab.restEffect.trigger === restType))
+                effects.push(ab.restEffect);
+            });
+          };
+          getActiveAncestryFeatures(c).forEach(check);
+          check(COMMUNITIES[c.community]);
+          (c.selectedCards || []).forEach(key => {
+            const sep = key.indexOf('::');
+            if (sep === -1) return;
+            const card = (DOMAIN_CARDS[key.slice(0, sep)] || []).find(cd => cd.name === key.slice(sep + 2));
+            check(card);
+          });
+          (cls?.classFeatures || []).forEach(check);
+          if (sub) {
+            const tiers = ["foundation", ...(subclassLevel >= 2 ? ["specialization"] : []), ...(subclassLevel >= 3 ? ["mastery"] : [])];
+            tiers.forEach(t => check(sub[t]));
+          }
+          return effects;
+        };
+
+        const restType = isLong ? "long" : "short";
+        const activeRestEffects = (isChoose || restModal === "shortLong") ? collectRestEffects("short") : collectRestEffects(restType);
+        const extraDowntimePicks = activeRestEffects.filter(e => e.effect === "extraDowntimeMove").reduce((s, e) => s + e.amount, 0);
+        const hasExtraLongRestMove = activeRestEffects.some(e => e.effect === "extraLongRestMove");
+        const maxPicks = restModal === "short" && hasExtraLongRestMove ? 1 : 2 + extraDowntimePicks;
+
+        const opts = restModal === "short" ? SHORT_OPTIONS : restModal === "long" ? LONG_OPTIONS : [];
+
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-            onClick={e => { if (e.target === e.currentTarget) { setRestModal(null); setRestChoices([]); } }}>
-            <div style={{ width: "100%", maxWidth: 480, background: P.card, borderRadius: "20px 20px 0 0", padding: 20, paddingBottom: 32, border: `1px solid ${P.border}`, borderBottom: "none" }}>
+            onClick={e => { if (e.target === e.currentTarget) { setRestModal(null); setRestChoices([]); setRestLongChoice(null); } }}>
+            <div style={{ width: "100%", maxWidth: 480, background: P.card, borderRadius: "20px 20px 0 0", padding: 20, paddingBottom: 32, border: `1px solid ${P.border}`, borderBottom: "none", maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
 
               {isChoose ? <>
                 <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -734,44 +825,72 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                     <div style={{ fontSize: 11, color: P.textMuted, lineHeight: 1.5 }}>Choose <strong style={{color:P.text}}>2 downtime moves</strong> (can repeat). Recovery options clear <strong style={{color:P.text}}>everything</strong>.</div>
                   </button>
                 </div>
-                <button onClick={() => { setRestModal(null); setRestChoices([]); }} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 8, border: `1px solid ${P.border}`, background: "transparent", color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>Cancel</button>
+                <button onClick={() => { setRestModal(null); setRestChoices([]); setRestLongChoice(null); }} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 8, border: `1px solid ${P.border}`, background: "transparent", color: P.textMuted, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>Cancel</button>
+              </> : restModal === "shortLong" ? <>
+                {/* Phase 2: pick one long rest option (excludes the short rest pick by id) */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                  <button onClick={() => { setRestModal("short"); setRestLongChoice(null); }}
+                    style={{ background: "none", border: "none", color: P.textMuted, cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>‹</button>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: P.accent }}>Long Rest Move</div>
+                    <div style={{ fontSize: 11, color: P.textMuted }}>Choose one long rest option (replaces your second short rest pick)</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, marginTop: 12, overflowY: "auto", flex: 1 }}>
+                  {LONG_OPTIONS.filter(opt => opt.id !== restChoices[0]).map(opt => {
+                    const selected = restLongChoice === opt.id;
+                    return (
+                      <div key={opt.id} onClick={() => setRestLongChoice(selected ? null : opt.id)}
+                        style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 10,
+                          border: `2px solid ${selected ? P.accent : P.border}`,
+                          background: selected ? P.accent + "18" : P.surface, cursor: "pointer", transition: "all .15s" }}>
+                        <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${selected ? P.accent : P.border}`,
+                          background: selected ? P.accent : "transparent", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {selected && <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>✓</span>}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: selected ? P.accent : P.text }}>{opt.label}</div>
+                          <div style={{ fontSize: 11, color: P.textMuted, marginTop: 2, lineHeight: 1.5 }}>{opt.desc}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button onClick={applyRest} disabled={!restLongChoice}
+                  style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none",
+                    background: restLongChoice ? P.accent : P.border,
+                    color: restLongChoice ? "#fff" : P.textMuted,
+                    fontSize: 14, fontWeight: 800, cursor: restLongChoice ? "pointer" : "default",
+                    fontFamily: "inherit", transition: "all .15s" }}>
+                  Apply Rest
+                </button>
               </> : <>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
                   <button onClick={() => { setRestModal("choose"); setRestChoices([]); }} style={{ background: "none", border: "none", color: P.textMuted, cursor: "pointer", fontSize: 22, padding: 0, lineHeight: 1 }}>‹</button>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: isLong ? P.accent : P.hope }}>{isLong ? "Long Rest" : "Short Rest"}</div>
                     <div style={{ fontSize: 11, color: P.textMuted }}>
-                      {restChoices.length}/2 moves chosen
+                      {restChoices.length}/{maxPicks} moves chosen
                       {!isLong && ` · Tier ${tier} · Recovery: 1d4+${tier}`}
-                      {` · You can pick the same move twice`}
+                      {!isLong && !hasExtraLongRestMove && ` · You can pick the same move twice`}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, marginTop: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, marginTop: 12, overflowY: "auto", flex: 1 }}>
                   {opts.map(opt => {
                     const countSelected = restChoices.filter(x => x === opt.id).length;
                     const totalSelected = restChoices.length;
                     const accentColor = isLong ? P.accent : P.hope;
-                    // Each slot is independent: slot 0 = first pick, slot 1 = second pick
                     const handleSlot = (e, slot) => {
                       e.stopPropagation();
-                      if (slot === 0) {
-                        if (countSelected >= 1) {
-                          // Remove one instance of this id (deselect slot 0)
-                          setRestChoices(prev => { const i = prev.indexOf(opt.id); return i === -1 ? prev : [...prev.slice(0, i), ...prev.slice(i + 1)]; });
-                        } else if (totalSelected < 2) {
-                          // Add first instance
-                          setRestChoices(prev => [...prev, opt.id]);
-                        }
-                      } else {
-                        if (countSelected >= 2) {
-                          // Remove second instance (deselect slot 1)
-                          setRestChoices(prev => { const i = prev.lastIndexOf(opt.id); return i === -1 ? prev : [...prev.slice(0, i), ...prev.slice(i + 1)]; });
-                        } else if (countSelected === 1 && totalSelected < 2) {
-                          // Add second instance — explicitly push, never remove
-                          setRestChoices(prev => [...prev, opt.id]);
-                        }
+                      if (slot < countSelected) {
+                        setRestChoices(prev => { const i = prev.lastIndexOf(opt.id); return i === -1 ? prev : [...prev.slice(0, i), ...prev.slice(i + 1)]; });
+                      } else if (slot === countSelected && totalSelected < maxPicks) {
+                        setRestChoices(prev => [...prev, opt.id]);
                       }
                     };
                     return (
@@ -781,21 +900,18 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                           background: countSelected > 0 ? accentColor + "18" : P.surface,
                           transition: "all .15s" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 2 }}>
-                          {[0, 1].map(slot => {
+                          {Array.from({ length: maxPicks }, (_, slot) => {
                             const filled = slot < countSelected;
-                            const slot1Locked = slot === 1 && countSelected < 1;
-                            const slot1Full   = slot === 1 && countSelected < 1 && totalSelected >= 2;
-                            const canClick = slot === 0
-                              ? (countSelected >= 1 || totalSelected < 2)
-                              : (countSelected >= 2 || (countSelected === 1 && totalSelected < 2));
+                            const locked = slot > 0 && countSelected < slot;
+                            const canClick = slot < countSelected || (slot === countSelected && totalSelected < maxPicks);
                             return (
                               <div key={slot} onClick={(e) => canClick && handleSlot(e, slot)}
                                 style={{ width: 22, height: 22, borderRadius: 6,
-                                  border: `2px solid ${filled ? accentColor : slot1Locked ? P.border + "55" : P.border}`,
+                                  border: `2px solid ${filled ? accentColor : locked ? P.border + "55" : P.border}`,
                                   background: filled ? accentColor : "transparent",
                                   flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                                   cursor: canClick ? "pointer" : "default",
-                                  opacity: slot1Locked ? 0.3 : 1,
+                                  opacity: locked ? 0.3 : 1,
                                   transition: "all .15s" }}>
                                 {filled && <span style={{ color: isLong ? "#fff" : "#000", fontSize: 12, fontWeight: 900, lineHeight: 1 }}>✓</span>}
                               </div>
@@ -835,13 +951,17 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
                     </div>
                   </div>
                 )}
-                <button onClick={applyRest} disabled={restChoices.length === 0}
+                <button
+                  onClick={hasExtraLongRestMove && restModal === "short" && restChoices.length === 1
+                    ? () => { setRestModal("shortLong"); setRestLongChoice(null); }
+                    : applyRest}
+                  disabled={restChoices.length === 0}
                   style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none",
                     background: restChoices.length > 0 ? (isLong ? P.accent : P.hope) : P.border,
                     color: restChoices.length > 0 ? (isLong ? "#fff" : "#000") : P.textMuted,
                     fontSize: 14, fontWeight: 800, cursor: restChoices.length > 0 ? "pointer" : "default",
                     fontFamily: "inherit", transition: "all .15s" }}>
-                  {isLong ? "Long Rest" : "Short Rest"}
+                  {isLong ? "Long Rest" : hasExtraLongRestMove ? "Next →" : "Short Rest"}
                 </button>
               </>}
             </div>

@@ -132,6 +132,7 @@ export const Sage = [
     level: 6, name: "Forager", type: "Ability", recallCost: 1,
     cost: null,
     passive: false,
+    restEffect: { trigger: "any", effect: "extraDowntimeMove", amount: 1 },
     summary: "Additional downtime move · Roll d6 → forage consumable · 1:clear 2 Stress 2:gain 2 Hope 3:+2 Spellcast Roll 4:clear 2 HP 5:reroll any die 6:choose · Party holds up to 5",
     text: "As an additional downtime move you can choose, roll a d6 to see what you forage. Work with the GM to describe it and add it to your inventory as a consumable. Your party can carry up to five foraged consumables at a time.\n1. A unique food (Clear 2 Stress)\n2. A beautiful relic (Gain 2 Hope)\n3. An arcane rune (+2 to a Spellcast Roll)\n4. A healing vial (Clear 2 Hit Points)\n5. A luck charm (Reroll any die)\n6. Choose one of the options above."
   },

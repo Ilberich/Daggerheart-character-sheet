@@ -799,7 +799,7 @@ const [passivesOpen, setPassivesOpen] = useState(true);
       title = `Thresholds: ${mT} / ${sT}`;
       rows = [
         <Row key="base" left={`Base (${baseName})`} right={`${threshBase[0]} / ${threshBase[1]}`} bold />,
-        <Row key="level" left="Level bonus" right={`+${c.level} / +${c.level}`} />,
+        <Row key="level" left="Level bonus" right={`+${c.level} / +${sA || hasBareBones ? c.level : c.level * 2}`} />,
         ...(sms.thresholds || []).map((e, i) => (
           <Row key={`t${i}`} left={`${e.featureName} · ${e.sourceName}`} right={`${fmtAmt(e.amount)} / ${fmtAmt(e.amount)}${fmtNote(e.amountLabel)}`} entry={e} />
         )),

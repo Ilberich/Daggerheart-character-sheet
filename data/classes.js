@@ -199,6 +199,7 @@ export const CLASSES = {
     classResources: [
       { name: "Beastform", type: "bool", defaultValue: false, recharge: null, hasTarget: false }
     ],
+    auxiliaryTabs: [{ name: "Beastform", type: "beastform" }],
     items: "A small bag of rocks and bones or a strange pendant found in the dirt",
     suggestedTraits: { Agility: 0, Strength: -1, Finesse: 0, Instinct: 2, Presence: 1, Knowledge: 1 },
   },
@@ -421,6 +422,7 @@ export const CLASSES = {
     classResources: [
       { name: "Ranger's Focus", type: "bool", defaultValue: false, recharge: null, hasTarget: true }
     ],
+    auxiliaryTabs: [{ name: "Companion", type: "companion", subclassOnly: "Beastbound" }],
     items: "A trophy from your first kill or a seemingly broken compass",
     suggestedTraits: { Agility: 2, Strength: 0, Finesse: 1, Instinct: 1, Presence: -1, Knowledge: 0 },
   },

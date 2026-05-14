@@ -14,6 +14,7 @@ import { LevelUpModal } from './level-up-modal.jsx';
 import { PlayTab } from './tabs/PlayTab.jsx';
 import { CharacterTab } from './tabs/CharacterTab.jsx';
 import { RulesNotesTab } from './tabs/RulesNotesTab.jsx';
+import { BeastformTab } from './tabs/BeastformTab.jsx';
 
 
 function lookupFeatureRecharge(key) {
@@ -310,6 +311,42 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     (card?.statEffects || []).forEach(applyStatEffect);
   });
 
+  // ── Modifier sources for display (display-only, no effect on calculations) ──
+  const statModSources = { evasion: [], thresholds: [], severeThreshold: [], armorScore: [] };
+  const pushModSource = (effect, featureName, sourceName, sourceType) => {
+    if (effect.playerChoice || effect.type === "override") return;
+    const condOk = !effect.condition ||
+      (effect.condition === "armored"   &&  isArmored) ||
+      (effect.condition === "unarmored" && !isArmored);
+    if (!condOk) return;
+    const stat = effect.stat;
+    if (!statModSources[stat]) return;
+    const amt = resolveAmount(effect.amount, effTraits, prof, c);
+    const amountLabel = (effect.amount && typeof effect.amount === "object") ? effect.amount.of : null;
+    statModSources[stat].push({ featureName, sourceName, sourceType, amount: amt, amountLabel });
+  };
+  if (c.evasionBonus) {
+    statModSources.evasion.push({ featureName: "Level bonus", sourceName: c.className, sourceType: "class", amount: c.evasionBonus, amountLabel: null });
+  }
+  getActiveAncestryFeatures(c).forEach(feature => {
+    let sourceName = c.ancestry || "Ancestry";
+    for (const [aName, aFeats] of Object.entries(ANCESTRIES)) {
+      if ((aFeats || []).some(f => f.name === feature.name)) { sourceName = aName; break; }
+    }
+    (feature.statEffects || []).forEach(e => pushModSource(e, feature.name, sourceName, "ancestry"));
+  });
+  if (sub) {
+    [[1, sub.foundation], [2, sub.specialization], [3, sub.mastery]].forEach(([tier, tierData]) => {
+      if (subclassLevel >= tier && tierData?.statEffects)
+        tierData.statEffects.forEach(e => pushModSource(e, tierData.name, c.subclass, "subclass"));
+    });
+  }
+  selectedCards.forEach(key => {
+    const [domain, cardName] = key.split("::");
+    const card = (DOMAIN_CARDS[domain] || []).find(cd => cd.name === cardName);
+    (card?.statEffects || []).forEach(e => pushModSource(e, card.name, domain, "domain"));
+  });
+
   const hpFromLevelUp     = Object.values(c.advUsed || {}).reduce((sum, t) => sum + (t.hp     || 0), 0);
   const stressFromLevelUp = Object.values(c.advUsed || {}).reduce((sum, t) => sum + (t.stress || 0), 0);
   const maxHp     = (cls ? cls.hp : 6) + hpBonus     + hpFromLevelUp;
@@ -416,12 +453,10 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     actions.push({ label: `${t} Roll`, detail: d, sub: TRAIT_ACTIONS[t], type: "trait" });
   });
 
-  const tabs = [
-    "Play",
-    ...(c.subclass === "Beastbound" ? ["Companion"] : []),
-    "Character",
-    "Rules/Notes"
-  ];
+  const auxTabs = (cls.auxiliaryTabs || [])
+    .filter(t => !t.subclassOnly || t.subclassOnly === c.subclass)
+    .map(t => t.name);
+  const tabs = ["Play", ...auxTabs, "Character", "Rules/Notes"];
 
   // ── Incomplete-indicator logic ────────────────────────────
   const bt = c.baseTraits ?? c.traits ?? {};
@@ -444,7 +479,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
   const gearIncomplete     = !c.primaryWeapon;
   const domainsIncomplete  = !c.selectedCards || c.selectedCards.length < maxLoadout || !c.cardsConfirmed;
   if (classIncomplete || heritageIncomplete || gearIncomplete || domainsIncomplete) glowingTabs.add("Character");
-  if (c.subclass === "Beastbound" && !c.companionName)                     glowingTabs.add("Companion");
+  if (auxTabs.includes("Companion") && !c.companionName)                   glowingTabs.add("Companion");
   // traitsAllZero check handled inline on the Edit Stats button
 
   const fmtMod = v => v >= 0 ? `+${v}` : `${v}`;
@@ -1088,6 +1123,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             setRestModal={setRestModal} setRestChoices={setRestChoices}
             onNewSession={handleNewSession}
             sub={sub} subclassLevel={subclassLevel} cls={cls}
+            statModSources={statModSources}
           />
         )}
 
@@ -1120,7 +1156,12 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             rulesCat={rulesCat} setRulesCat={setRulesCat}
           />
         )}
-        {tab === "Companion" && <CompanionTab c={c} u={u} prof={prof} />}
+        {(cls.auxiliaryTabs || []).filter(t => !t.subclassOnly || t.subclassOnly === c.subclass).map(t => {
+          if (tab !== t.name) return null;
+          if (t.type === "companion")  return <CompanionTab key={t.name} c={c} u={u} prof={prof} />;
+          if (t.type === "beastform")  return <BeastformTab key={t.name} c={c} u={u} effTraits={effTraits} subclassLevel={subclassLevel} />;
+          return null;
+        })}
       </div>
       <div style={{ padding: "16px", textAlign: "center", fontSize: 9, color: P.textMuted, borderTop: `1px solid ${P.border}` }}>Daggerheart © Darrington Press 2025 — Fan-made digital sheet</div>
     </div>

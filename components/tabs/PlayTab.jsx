@@ -777,7 +777,7 @@ const [passivesOpen, setPassivesOpen] = useState(true);
     if (popoverStat === "evasion") {
       title = `Evasion: ${fEv}`;
       rows = [
-        <Row key="base" left={`Base (${cls?.name || "Class"})`} right={cls?.evasion ?? "—"} bold />,
+        <Row key="base" left={`Base (${c.className || "Class"})`} right={cls?.evasion ?? "—"} bold />,
         ...(sms.evasion || []).map((e, i) => (
           <Row key={i} left={`${e.featureName} · ${e.sourceName}`} right={`${fmtAmt(e.amount)}${fmtNote(e.amountLabel)}`} entry={e} />
         )),

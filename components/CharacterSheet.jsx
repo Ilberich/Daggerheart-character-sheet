@@ -453,7 +453,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
     actions.push({ label: `${t} Roll`, detail: d, sub: TRAIT_ACTIONS[t], type: "trait" });
   });
 
-  const auxTabs = (cls.auxiliaryTabs || [])
+  const auxTabs = (cls?.auxiliaryTabs || [])
     .filter(t => !t.subclassOnly || t.subclassOnly === c.subclass)
     .map(t => t.name);
   const tabs = ["Play", ...auxTabs, "Character", "Rules/Notes"];
@@ -1156,7 +1156,7 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             rulesCat={rulesCat} setRulesCat={setRulesCat}
           />
         )}
-        {(cls.auxiliaryTabs || []).filter(t => !t.subclassOnly || t.subclassOnly === c.subclass).map(t => {
+        {(cls?.auxiliaryTabs || []).filter(t => !t.subclassOnly || t.subclassOnly === c.subclass).map(t => {
           if (tab !== t.name) return null;
           if (t.type === "companion")  return <CompanionTab key={t.name} c={c} u={u} prof={prof} />;
           if (t.type === "beastform")  return <BeastformTab key={t.name} c={c} u={u} effTraits={effTraits} subclassLevel={subclassLevel} />;

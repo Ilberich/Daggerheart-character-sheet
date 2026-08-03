@@ -126,9 +126,9 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
         const t = pick.fromTier;
         au[t][pick.type] = (au[t][pick.type] || 0) + 1;
         if (pick.type === "traits") {
-          const traits = { ...next.traits };
-          for (const tr of pick.traits) { traits[tr] = (traits[tr] || 0) + 1; }
-          next.traits = traits;
+          const inc = { ...(next.traitIncreases ?? prev.traitIncreases ?? {}) };
+          for (const tr of pick.traits) { inc[tr] = (inc[tr] || 0) + 1; }
+          next.traitIncreases = inc;
           au[t].traitsPicked = [...(au[t].traitsPicked || []), ...pick.traits];
         }
         if (pick.type === "hp")          next.hp = [...(next.hp || prev.hp), false];
@@ -170,6 +170,13 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
             const inc = { ...(next.traitIncreases ?? prev.traitIncreases ?? {}) };
             for (const tr of (pick.traits || [])) { inc[tr] = (inc[tr] || 0) - 1; }
             next.traitIncreases = inc;
+
+            const picked = [...(au[t].traitsPicked || [])];
+            for (const tr of (pick.traits || [])) {
+              const idx = picked.indexOf(tr);
+              if (idx !== -1) picked.splice(idx, 1);
+            }
+            au[t].traitsPicked = picked;
           }
           if (pick.type === "hp")          { const hp = [...(next.hp ?? prev.hp)]; hp.pop(); next.hp = hp; }
           if (pick.type === "stress")      { const stress = [...(next.stress ?? prev.stress)]; stress.pop(); next.stress = stress; }

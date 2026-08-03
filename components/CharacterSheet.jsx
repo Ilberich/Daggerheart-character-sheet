@@ -126,9 +126,9 @@ function DaggerheartSheet({ c, setC, onBack, themeName, setTheme }) {
         const t = pick.fromTier;
         au[t][pick.type] = (au[t][pick.type] || 0) + 1;
         if (pick.type === "traits") {
-          const traits = { ...next.traits };
-          for (const tr of pick.traits) { traits[tr] = (traits[tr] || 0) + 1; }
-          next.traits = traits;
+          const inc = { ...(next.traitIncreases ?? prev.traitIncreases ?? {}) };
+          for (const tr of pick.traits) { inc[tr] = (inc[tr] || 0) + 1; }
+          next.traitIncreases = inc;
           au[t].traitsPicked = [...(au[t].traitsPicked || []), ...pick.traits];
         }
         if (pick.type === "hp")          next.hp = [...(next.hp || prev.hp), false];

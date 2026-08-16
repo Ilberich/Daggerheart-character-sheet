@@ -45,3 +45,7 @@ export const THEME_META = {
 export const P = { ...THEMES["Pulse"] };
 export const sBtn = { width: 26, height: 26, borderRadius: 6, border: `1px solid ${P.border}`, background: P.surface, color: P.text, fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0 };
 export const mono = "'JetBrains Mono', monospace";
+export const CLASS_COLORS = {
+  Bard: "#ec4899", Druid: "#22c55e", Guardian: "#f97316", Ranger: "#84cc16",
+  Rogue: "#a855f7", Seraph: "#facc15", Sorcerer: "#ef4444", Warrior: "#f59e0b", Wizard: "#3b82f6",
+};

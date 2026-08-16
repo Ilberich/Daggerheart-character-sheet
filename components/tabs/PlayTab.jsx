@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { P, mono, sBtn } from '../../data/themes.js';
+import { P, mono, sBtn, CLASS_COLORS } from '../../data/themes.js';
 import { DOMAIN_CARDS, DOMAIN_COLORS } from '../../data/domain-cards/index.js';
 import { COMMUNITIES, getActiveAncestryFeatures } from '../../data/ancestries.js';
 import { getTrait } from '../../utils/advancement.js';
@@ -180,8 +180,10 @@ export function PlayTab({
   setRestModal, setRestChoices,
   onNewSession,
   sub, subclassLevel, cls,
+  statModSources,
 }) {
   const [combatOpen,   setCombatOpen]   = useState(true);
+  const [popoverStat,  setPopoverStat]  = useState(null);
   const [resOpen,      setResOpen]      = useState(true);
   const [expOpen,      setExpOpen]      = useState(true);
   const [qaOpen,       setQaOpen]       = useState(true);
@@ -208,6 +210,42 @@ const [passivesOpen, setPassivesOpen] = useState(true);
       />
     </div>
   );
+
+  // ── Stat modifier symbol helpers ─────────────────────────────────────
+  const sms = statModSources || { evasion: [], thresholds: [], severeThreshold: [], armorScore: [] };
+  const symbolFor = (entry) => {
+    if (entry.sourceType === "equipment") return { ch: "⬡", color: entry.amount >= 0 ? P.hp : P.fear };
+    if (entry.sourceType === "domain")    return { ch: "✦", color: DOMAIN_COLORS[entry.sourceName] ?? P.accent };
+    if (entry.sourceType === "ancestry")  return { ch: "◆", color: "#94a3b8" };
+    return { ch: "▲", color: CLASS_COLORS[c.className] ?? P.accent };
+  };
+  const buildSymbols = (statKeys, extras = []) => {
+    const entries = [...statKeys.flatMap(k => sms[k] || []), ...extras];
+    return entries.map((entry, i) => ({ ...symbolFor(entry), key: i, entry }));
+  };
+  const evEquip  = eM !== 0 ? [{ sourceType: "equipment", amount: eM }] : [];
+  const asEquip  = shieldBonus > 0 ? [{ sourceType: "equipment", amount: shieldBonus }] : [];
+  const evSymbols  = buildSymbols(["evasion"], evEquip);
+  const asSymbols  = buildSymbols(["armorScore"], asEquip);
+  const thrSymbols = buildSymbols(["thresholds", "severeThreshold"]);
+
+  const SymRow = ({ symbols }) => {
+    const shown    = symbols.length > 4 ? symbols.slice(0, 3) : symbols;
+    const overflow = symbols.length > 4 ? symbols.length - 3 : 0;
+    return (
+      <div style={{ display: "flex", gap: 2, justifyContent: "center", marginTop: 2, flexWrap: "nowrap" }}>
+        {shown.map(s => <span key={s.key} style={{ fontSize: 9, color: s.color, lineHeight: 1 }}>{s.ch}</span>)}
+        {overflow > 0 && <span style={{ fontSize: 8, color: P.textMuted }}>+{overflow}</span>}
+      </div>
+    );
+  };
+
+  // Threshold base values (for popover breakdown)
+  const BB_T = [[9,19],[11,24],[13,31],[15,38]];
+  const threshBase = sA
+    ? [parseInt(sA.thresholds.split("/")[0]), parseInt(sA.thresholds.split("/")[1])]
+    : hasBareBones ? BB_T[bbTier] : [0, 0];
+
   return <>
           {/* __ Combat Stats collapsible __ */}
           <div>
@@ -219,22 +257,20 @@ const [passivesOpen, setPassivesOpen] = useState(true);
           {/* Trackers */}
           <Card>
             <div style={{ display: "flex", justifyContent: "space-around", textAlign: "center", marginBottom: 10 }}>
-              <div>
+              <div onClick={() => evSymbols.length && setPopoverStat("evasion")} style={{ cursor: evSymbols.length ? "pointer" : "default" }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: P.accent, fontFamily: mono }}>{fEv}</div>
-                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>EVASION{hasUntouchable ? <span style={{ color: "#f97316" }}> ✦</span> : ""}{eM > 0 ? <span style={{ color: P.hp }}> ▲</span> : ""}{eM < 0 ? <span style={{ color: P.fear }}> ▼</span> : ""}</div>
-                {hasUntouchable && <div style={{ fontSize: 8, color: "#f97316", marginTop: 1 }}>+½ Agility (Untouchable)</div>}
-                {eM !== 0 && <div style={{ fontSize: 8, color: eM > 0 ? P.hp : P.fear, marginTop: hasUntouchable ? 0 : 1 }}>{eM > 0 ? `+${eM}` : eM} from gear</div>}
+                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>EVASION</div>
+                {evSymbols.length > 0 && <SymRow symbols={evSymbols} />}
               </div>
-              <div>
+              <div onClick={() => asSymbols.length && setPopoverStat("armorScore")} style={{ cursor: asSymbols.length ? "pointer" : "default" }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: P.text, fontFamily: mono }}>{aS}</div>
-                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>ARMOR{shieldBonus > 0 ? <span style={{ color: P.hp }}> ▲</span> : ""}{hasBareBones && !sA ? <span style={{ color: "#f59e0b" }}> ✦</span> : ""}</div>
-                {shieldBonus > 0 && <div style={{ fontSize: 8, color: P.hp, marginTop: 1 }}>+{shieldBonus} from shield</div>}
-                {hasBareBones && !sA && <div style={{ fontSize: 8, color: "#f59e0b", marginTop: 1 }}>3+STR (Bare Bones)</div>}
+                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>ARMOR</div>
+                {asSymbols.length > 0 && <SymRow symbols={asSymbols} />}
               </div>
-              <div>
+              <div onClick={() => thrSymbols.length && setPopoverStat("thresholds")} style={{ cursor: thrSymbols.length ? "pointer" : "default" }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: P.stress, fontFamily: mono }}>{mT}/{sT}</div>
-                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>THRESHOLDS{hasBareBones && !sA ? <span style={{ color: "#f59e0b" }}> ✦</span> : ""}</div>
-                {hasBareBones && !sA && <div style={{ fontSize: 8, color: "#f59e0b", marginTop: 1 }}>Bare Bones (Tier {bbTier+1})</div>}
+                <div style={{ fontSize: 9, color: P.textMuted, fontWeight: 700 }}>THRESHOLDS</div>
+                {thrSymbols.length > 0 && <SymRow symbols={thrSymbols} />}
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-around", textAlign: "center", fontSize: 9, color: P.textMuted, marginBottom: 6 }}>
@@ -724,5 +760,67 @@ const [passivesOpen, setPassivesOpen] = useState(true);
             </>
             }
           </div>
+
+  {/* ── Stat modifier popover ── */}
+  {popoverStat && (() => {
+    const fmtAmt = (n) => n >= 0 ? `+${n}` : `${n}`;
+    const fmtNote = (lbl) => lbl ? ` (${lbl})` : "";
+    const sym = (entry) => { const s = symbolFor(entry); return <span style={{ fontSize: 9, color: s.color, marginLeft: 4 }}>{s.ch}</span>; };
+    const Row = ({ left, right, entry, bold }) => (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: `1px solid ${P.border}` }}>
+        <span style={{ fontSize: 11, color: bold ? P.text : P.textMuted, fontWeight: bold ? 700 : 400 }}>{left}</span>
+        <span style={{ fontSize: 11, color: P.text, display: "flex", alignItems: "center" }}>{right}{entry && sym(entry)}</span>
+      </div>
+    );
+
+    let title, rows;
+    if (popoverStat === "evasion") {
+      title = `Evasion: ${fEv}`;
+      rows = [
+        <Row key="base" left={`Base (${c.className || "Class"})`} right={cls?.evasion ?? "—"} bold />,
+        ...(sms.evasion || []).map((e, i) => (
+          <Row key={i} left={`${e.featureName} · ${e.sourceName}`} right={`${fmtAmt(e.amount)}${fmtNote(e.amountLabel)}`} entry={e} />
+        )),
+        ...(eM !== 0 ? [<Row key="gear" left="Equipment" right={fmtAmt(eM)} entry={{ sourceType: "equipment", amount: eM }} />] : []),
+      ];
+    } else if (popoverStat === "armorScore") {
+      const asBase = sA ? sA.score : (hasBareBones ? `3+STR` : 0);
+      const asBaseName = sA ? sA.name : (hasBareBones ? "Bare Bones" : "None");
+      title = `Armor Score: ${aS}`;
+      rows = [
+        <Row key="base" left={`Base (${asBaseName})`} right={asBase} bold />,
+        ...(sms.armorScore || []).map((e, i) => (
+          <Row key={i} left={`${e.featureName} · ${e.sourceName}`} right={`${fmtAmt(e.amount)}${fmtNote(e.amountLabel)}`} entry={e} />
+        )),
+        ...(shieldBonus > 0 ? [<Row key="shield" left="Shield" right={`+${shieldBonus}`} entry={{ sourceType: "equipment", amount: shieldBonus }} />] : []),
+      ];
+    } else {
+      const baseName = sA ? sA.name : (hasBareBones ? "Bare Bones" : "Unarmored");
+      title = `Thresholds: ${mT} / ${sT}`;
+      rows = [
+        <Row key="base" left={`Base (${baseName})`} right={`${threshBase[0]} / ${threshBase[1]}`} bold />,
+        <Row key="level" left="Level bonus" right={`+${c.level} / +${sA || hasBareBones ? c.level : c.level * 2}`} />,
+        ...(sms.thresholds || []).map((e, i) => (
+          <Row key={`t${i}`} left={`${e.featureName} · ${e.sourceName}`} right={`${fmtAmt(e.amount)} / ${fmtAmt(e.amount)}${fmtNote(e.amountLabel)}`} entry={e} />
+        )),
+        ...(sms.severeThreshold || []).map((e, i) => (
+          <Row key={`s${i}`} left={`${e.featureName} · ${e.sourceName}`} right={`+0 / ${fmtAmt(e.amount)}${fmtNote(e.amountLabel)}`} entry={e} />
+        )),
+      ];
+    }
+    return (
+      <div onClick={() => setPopoverStat(null)}
+        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000,
+                 display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div onClick={e => e.stopPropagation()}
+          style={{ background: P.surface, borderRadius: 12, padding: 16, maxWidth: 340,
+                   width: "90%", maxHeight: "75vh", overflow: "auto",
+                   border: `1px solid ${P.border}` }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: P.text, marginBottom: 8 }}>{title}</div>
+          {rows}
+        </div>
+      </div>
+    );
+  })()}
   </>
 }
